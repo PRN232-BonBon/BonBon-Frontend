@@ -24,7 +24,7 @@ export function HeroSection() {
     <main id="top" className="hero-section">
       <div className="container">
         <div className="hero-media">
-          <img src="/assets/hero/hero.jpg" alt="Xe BonBon bên khu cắm trại trong ánh hoàng hôn" />
+          <img src="/assets/hero/hero.webp" alt="Xe BonBon bên khu cắm trại trong ánh hoàng hôn" />
           <div className="hero-overlay" />
           <motion.div
             className="hero-copy"

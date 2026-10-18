@@ -5,7 +5,7 @@ export function Footer() {
     <footer className="site-footer">
       <div className="container footer-grid">
         <div className="footer-brand">
-          <img src="/assets/brand/bonbon-logo-cropped.png" alt="BonBon" />
+          <img src="/assets/brand/bonbon-logo-cropped.webp" alt="BonBon" />
           <p>Kết nối khách thuê với chủ xe để mỗi hành trình tự lái trở nên chủ động hơn.</p>
           <div className="social-links" aria-label="Mạng xã hội">
             <a href="#top" aria-label="Facebook BonBon"><FacebookLogo size={22} /></a>

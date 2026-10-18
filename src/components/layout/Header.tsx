@@ -49,7 +49,7 @@ export function Header() {
     <header className="site-header">
       <div className="container header-inner">
         <a className="brand" href="/#top" aria-label="BonBon - về đầu trang">
-          <img src="/assets/brand/bonbon-logo-cropped.png" alt="BonBon" />
+          <img src="/assets/brand/bonbon-logo-cropped.webp" alt="BonBon" />
         </a>
 
         <nav className="desktop-nav" aria-label="Điều hướng chính">

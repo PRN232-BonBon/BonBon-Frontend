@@ -291,7 +291,7 @@ export function RentalTimeModal({ value, onClose, onConfirm }: RentalTimeModalPr
                       aria-labelledby="rental-limit-title"
                       aria-describedby="rental-limit-description"
                     >
-                      <img src="/not-found.png" alt="Không thể đặt xe cho khoảng thời gian đã chọn" />
+                      <img src="/not-found.webp" alt="Không thể đặt xe cho khoảng thời gian đã chọn" />
                       <div>
                         <h3 id="rental-limit-title">Thời gian thuê quá dài</h3>
                         <p id="rental-limit-description">
