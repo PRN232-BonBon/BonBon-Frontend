@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-payment-staging/
 .vite/
 .env
 .env.*
@@ -8,3 +9,5 @@ dist/
 .idea/
 .vscode/
 coverage/
+test-results/
+playwright-report/

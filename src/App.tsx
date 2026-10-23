@@ -11,6 +11,7 @@ import { FavoritesPage } from "./components/portal/FavoritesPage";
 import { TripsPage } from "./components/portal/TripsPage";
 import { AddressesPage } from "./components/portal/AddressesPage";
 import { ChangePasswordPage } from "./components/portal/ChangePasswordPage";
+import { PaymentResultPage } from "./components/payment/PaymentResultPage";
 import { useAuth } from "./auth/AuthContext";
 import type { ComponentType } from "react";
 
@@ -20,6 +21,7 @@ const portalPages: Record<string, ComponentType> = {
   "/my-trips": TripsPage,
   "/my-addresses": AddressesPage,
   "/change-password": ChangePasswordPage,
+  "/payment/result": PaymentResultPage,
 };
 
 export default function App() {
@@ -28,7 +30,8 @@ export default function App() {
   const PortalPage = portalPages[path];
 
   if (PortalPage) {
-    return <div className="app-shell portal-app"><Header />{isRestoring ? <div className="portal-auth-state">Đang khôi phục phiên đăng nhập...</div> : session ? <PortalLayout path={path}><PortalPage /></PortalLayout> : <div className="portal-auth-state"><h1>Bạn cần đăng nhập</h1><p>Đăng nhập để truy cập khu vực tài khoản BonBon.</p><a className="button portal-primary" href="/">Về trang chủ</a></div>}</div>;
+    const paymentLayout = path === "/my-trips" || path === "/payment/result";
+    return <div className={`app-shell portal-app${paymentLayout ? " payment-portal" : ""}`}><Header />{isRestoring ? <div className="portal-auth-state">Đang khôi phục phiên đăng nhập...</div> : session ? <PortalLayout path={path === "/payment/result" ? "/my-trips" : path}><PortalPage /></PortalLayout> : <div className="portal-auth-state"><h1>Bạn cần đăng nhập</h1><p>Đăng nhập để truy cập khu vực tài khoản BonBon.</p><a className="button portal-primary" href="/">Về trang chủ</a></div>}</div>;
   }
 
   return (

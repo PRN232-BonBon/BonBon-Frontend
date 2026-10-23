@@ -7,7 +7,14 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run",
+    "test:browser": "playwright test",
+    "dev:payment-staging": "vite --config vite.payment-staging.config.ts --mode payment-staging",
+    "build:payment-staging": "tsc -b && tsc -p tsconfig.payment-staging.json && vite build --config vite.payment-staging.config.ts --mode payment-staging",
+    "preview:payment-staging": "vite preview --config vite.payment-staging.config.ts --mode payment-staging",
+    "test:payment-staging": "playwright test --config playwright.payment-staging.config.ts",
+    "typecheck:payment-staging": "tsc -b --pretty false && tsc -p tsconfig.payment-staging.json"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
@@ -17,12 +24,17 @@
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.1.17",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^22.20.5",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.1",
+    "jsdom": "^27.4.0",
     "tailwindcss": "^4.1.17",
     "typescript": "~5.9.3",
-    "vite": "^7.2.2"
+    "vite": "^7.2.2",
+    "vitest": "^4.1.12"
   }
 }

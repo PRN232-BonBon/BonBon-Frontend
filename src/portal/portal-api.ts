@@ -32,8 +32,8 @@ async function api<T>(path: string, session: AuthSession, init?: RequestInit) {
   return response.status === 204 ? undefined as T : response.json() as Promise<T>;
 }
 
-export function getMyBookings(session: AuthSession) {
-  return api<CustomerBooking[]>("/bookings/mine", session);
+export function getMyBookings(session: AuthSession, signal?: AbortSignal) {
+  return api<CustomerBooking[]>("/bookings/mine", session, { signal });
 }
 
 export function changePassword(session: AuthSession, currentPassword: string, newPassword: string) {
