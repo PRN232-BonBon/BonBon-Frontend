@@ -11,6 +11,7 @@ import { FavoritesPage } from "./components/portal/FavoritesPage";
 import { TripsPage } from "./components/portal/TripsPage";
 import { AddressesPage } from "./components/portal/AddressesPage";
 import { ChangePasswordPage } from "./components/portal/ChangePasswordPage";
+import { VehicleListPage } from "./components/vehicles/VehicleListPage";
 import { useAuth } from "./auth/AuthContext";
 import type { ComponentType } from "react";
 
@@ -29,6 +30,10 @@ export default function App() {
 
   if (PortalPage) {
     return <div className="app-shell portal-app"><Header />{isRestoring ? <div className="portal-auth-state">Đang khôi phục phiên đăng nhập...</div> : session ? <PortalLayout path={path}><PortalPage /></PortalLayout> : <div className="portal-auth-state"><h1>Bạn cần đăng nhập</h1><p>Đăng nhập để truy cập khu vực tài khoản BonBon.</p><a className="button portal-primary" href="/">Về trang chủ</a></div>}</div>;
+  }
+
+  if (path === "/cars") {
+    return <div className="app-shell vehicle-list-app"><Header /><VehicleListPage /></div>;
   }
 
   return (

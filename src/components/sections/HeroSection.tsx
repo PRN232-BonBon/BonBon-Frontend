@@ -17,7 +17,14 @@ export function HeroSection() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage(`Đang tìm xe tại ${location} cho ${rentalWindow.billableUnits} ${rentalWindow.unitLabel}.`);
+    setMessage(`Đang tìm xe tại ${location}...`);
+    const params = new URLSearchParams({
+      location,
+      rentalType: rentalWindow.rentalType,
+      startAt: rentalWindow.startAt,
+      endAt: rentalWindow.endAt,
+    });
+    window.location.href = `/cars?${params.toString()}`;
   }
 
   return (

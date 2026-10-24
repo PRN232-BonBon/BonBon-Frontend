@@ -25,7 +25,7 @@ export function FeaturedLocations() {
           <div className="location-track" ref={trackRef}>
             {locations.map((location, index) => (
               <Reveal key={location.name} delay={index * 0.05} className="location-card-wrap">
-                <a className="location-card" href="#top" aria-label={`Tìm xe tại ${location.name}`}>
+                <a className="location-card" href={`/cars?location=${encodeURIComponent(location.name)}`} aria-label={`Tìm xe tại ${location.name}`}>
                   <img src={location.image} alt={location.name} loading="lazy" />
                   <div className="location-scrim" />
                   <div className="location-copy">
