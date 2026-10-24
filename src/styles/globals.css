@@ -2601,7 +2601,7 @@ html[data-theme="dark"] {
 .car-gallery {
   display: grid;
   height: 410px;
-  grid-template-columns: minmax(0, 1.72fr) minmax(320px, 1fr);
+  grid-template-columns: minmax(0, 1.85fr) minmax(280px, .95fr);
   gap: 10px;
   overflow: hidden;
   border-radius: 14px;
@@ -2611,33 +2611,122 @@ html[data-theme="dark"] {
 .car-gallery button { border: 0; padding: 0; background: #ecece8; cursor: pointer; }
 .car-gallery-main { overflow: hidden; }
 .car-gallery-main img,
-.car-gallery-thumbnails button img { width: 100%; height: 100%; object-fit: cover; transition: transform 360ms cubic-bezier(.16, 1, .3, 1), opacity 180ms ease; }
-.car-gallery-main:hover img { transform: scale(1.018); }
-.car-gallery-thumbnails {
+.car-gallery-side > button:not(.car-gallery-all) img { width: 100%; height: 100%; object-fit: cover; transition: transform 360ms cubic-bezier(.16, 1, .3, 1), opacity 180ms ease; }
+.car-gallery-main:hover img,
+.car-gallery-side > button:not(.car-gallery-all):hover img { transform: scale(1.018); }
+.car-gallery-side {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 0;
   grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
-.car-gallery-thumbnails button { overflow: hidden; }
-.car-gallery-thumbnails button:nth-child(3) { grid-column: 1 / -1; }
-.car-gallery-thumbnails button.is-active img { opacity: .72; transform: scale(1.025); }
-.car-gallery-thumbnails > span {
+.car-gallery-side > button:not(.car-gallery-all) { min-height: 0; overflow: hidden; }
+.car-gallery-all {
   position: absolute;
   right: 12px;
   bottom: 12px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  width: auto;
   border-radius: 9px;
-  padding: 9px 12px;
-  background: rgb(255 255 255 / .94);
+  padding: 10px 13px !important;
+  background: rgb(255 255 255 / .96) !important;
   color: #282828;
   box-shadow: 0 5px 18px rgb(0 0 0 / .14);
   font-size: .76rem;
   font-weight: 780;
+  transition: transform 170ms ease, background 170ms ease;
 }
+.car-gallery-all:hover { background: #fff !important; transform: translateY(-1px); }
+.car-gallery-all:active { transform: translateY(1px); }
+
+.car-photo-viewer {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  display: grid;
+  min-height: 100dvh;
+  grid-template-rows: 64px minmax(0, 1fr) 116px;
+  overflow: hidden;
+  background: #121210;
+  color: #f4f4ef;
+  animation: auth-backdrop-in 170ms ease both;
+}
+.car-photo-viewer > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+}
+.car-photo-viewer > header strong { color: #d4d4ce; font-size: .84rem; font-weight: 680; }
+.car-photo-viewer > header button,
+.car-photo-stage > button {
+  display: grid;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / .18);
+  border-radius: 50%;
+  background: rgb(255 255 255 / .07);
+  color: #f7f7f2;
+  cursor: pointer;
+  transition: background 170ms ease, border-color 170ms ease, transform 170ms ease;
+}
+.car-photo-viewer > header button { width: 40px; height: 40px; }
+.car-photo-stage > button { width: 48px; height: 48px; }
+.car-photo-viewer > header button:hover,
+.car-photo-stage > button:hover { border-color: rgb(255 255 255 / .4); background: rgb(255 255 255 / .13); }
+.car-photo-viewer > header button:active,
+.car-photo-stage > button:active { transform: scale(.96); }
+.car-photo-stage {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: 72px minmax(0, 1fr) 72px;
+  align-items: center;
+  padding: 4px 18px 12px;
+}
+.car-photo-stage > button { justify-self: center; }
+.car-photo-stage figure {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  place-items: center;
+  overflow: hidden;
+  margin: 0;
+}
+.car-photo-stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  object-fit: contain;
+  box-shadow: 0 22px 70px rgb(0 0 0 / .32);
+}
+.car-photo-thumbnails {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 24px 18px;
+  scrollbar-width: thin;
+}
+.car-photo-thumbnails button {
+  flex: 0 0 108px;
+  height: 76px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 9px;
+  padding: 2px;
+  background: transparent;
+  opacity: .64;
+  cursor: pointer;
+  transition: opacity 170ms ease, border-color 170ms ease, transform 170ms ease;
+}
+.car-photo-thumbnails button:hover { opacity: .9; }
+.car-photo-thumbnails button.is-active { border-color: #f6b500; opacity: 1; transform: translateY(-2px); }
+.car-photo-thumbnails img { width: 100%; height: 100%; border-radius: 5px; object-fit: cover; }
 
 .car-detail-layout {
   display: grid;

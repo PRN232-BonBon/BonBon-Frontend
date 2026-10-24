@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  ArrowLeft,
+  ArrowRight,
   CalendarBlank,
-  Camera,
   CarProfile,
   Check,
   CheckCircle,
   GasPump,
   Heart,
+  ImagesSquare,
   MapPin,
   Seat,
   ShieldCheck,
@@ -33,7 +35,8 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
   const { session } = useAuth();
   const [rentalWindow, setRentalWindow] = useState(initialRentalWindow);
   const [isTimeOpen, setIsTimeOpen] = useState(false);
-  const [activeImage, setActiveImage] = useState(vehicle.imageUrls[0]);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -41,6 +44,15 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
   const unitPrice = rentalWindow.rentalType === "Hourly" ? vehicle.hourPrice : vehicle.dayPrice;
   const total = unitPrice * rentalWindow.billableUnits;
   const rentalLabel = rentalWindow.rentalType === "Hourly" ? "giờ" : "ngày";
+  const galleryLength = vehicle.imageUrls.length;
+
+  const openGallery = (index: number) => {
+    setActiveImageIndex(index);
+    setIsGalleryOpen(true);
+  };
+
+  const showPreviousImage = () => setActiveImageIndex((index) => (index - 1 + galleryLength) % galleryLength);
+  const showNextImage = () => setActiveImageIndex((index) => (index + 1) % galleryLength);
 
   const specificationItems = useMemo(() => [
     { icon: SteeringWheel, label: "Truyền động", value: vehicle.transmission === "Automatic" ? "Số tự động" : "Số sàn" },
@@ -53,6 +65,12 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const closeOnEscape = (event: KeyboardEvent) => {
+      if (isGalleryOpen) {
+        if (event.key === "Escape") setIsGalleryOpen(false);
+        if (event.key === "ArrowLeft") showPreviousImage();
+        if (event.key === "ArrowRight") showNextImage();
+        return;
+      }
       if (event.key === "Escape" && !isTimeOpen) onClose();
     };
     window.addEventListener("keydown", closeOnEscape);
@@ -60,7 +78,7 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", closeOnEscape);
     };
-  }, [isTimeOpen, onClose]);
+  }, [galleryLength, isGalleryOpen, isTimeOpen, onClose]);
 
   const submitBooking = async () => {
     setMessage(null);
@@ -97,16 +115,18 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
 
         <div className="car-detail-scroll">
           <section className="car-gallery" aria-label="Ảnh xe">
-            <button className="car-gallery-main" type="button" onClick={() => setActiveImage(vehicle.imageUrls[0])}>
-              <img src={activeImage} alt={`${vehicle.brand} ${vehicle.model} ${vehicle.year}`} />
+            <button className="car-gallery-main" type="button" onClick={() => openGallery(0)} aria-label="Xem ảnh chính">
+              <img src={vehicle.imageUrls[0]} alt={`${vehicle.brand} ${vehicle.model} ${vehicle.year}`} />
             </button>
-            <div className="car-gallery-thumbnails">
-              {vehicle.imageUrls.slice(0, 3).map((image, index) => (
-                <button className={activeImage === image ? "is-active" : ""} type="button" key={image} onClick={() => setActiveImage(image)} aria-label={`Xem ảnh xe ${index + 1}`}>
+            <div className="car-gallery-side">
+              {vehicle.imageUrls.slice(1, 3).map((image, index) => (
+                <button type="button" key={image} onClick={() => openGallery(index + 1)} aria-label={`Xem ảnh xe ${index + 2}`}>
                   <img src={image} alt="" />
                 </button>
               ))}
-              <span><Camera size={18} /> {vehicle.imageUrls.length} ảnh</span>
+              <button className="car-gallery-all" type="button" onClick={() => openGallery(0)}>
+                <ImagesSquare size={19} /> Xem tất cả ảnh
+              </button>
             </div>
           </section>
 
@@ -177,6 +197,27 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
           </div>
         </div>
       </article>
+
+      {isGalleryOpen ? (
+        <div className="car-photo-viewer" role="dialog" aria-modal="true" aria-label={`Thư viện ảnh ${vehicle.brand} ${vehicle.model}`} onMouseDown={(event) => { if (event.target === event.currentTarget) setIsGalleryOpen(false); }}>
+          <header>
+            <strong>{activeImageIndex + 1} / {galleryLength}</strong>
+            <button type="button" onClick={() => setIsGalleryOpen(false)} aria-label="Đóng thư viện ảnh"><X size={25} /></button>
+          </header>
+          <div className="car-photo-stage">
+            <button type="button" onClick={showPreviousImage} aria-label="Ảnh trước"><ArrowLeft size={28} /></button>
+            <figure><img src={vehicle.imageUrls[activeImageIndex]} alt={`${vehicle.brand} ${vehicle.model} - ảnh ${activeImageIndex + 1}`} /></figure>
+            <button type="button" onClick={showNextImage} aria-label="Ảnh tiếp theo"><ArrowRight size={28} /></button>
+          </div>
+          <div className="car-photo-thumbnails" aria-label="Danh sách ảnh xe">
+            {vehicle.imageUrls.map((image, index) => (
+              <button className={index === activeImageIndex ? "is-active" : ""} type="button" key={image} onClick={() => setActiveImageIndex(index)} aria-label={`Xem ảnh ${index + 1}`} aria-current={index === activeImageIndex ? "true" : undefined}>
+                <img src={image} alt="" />
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {isTimeOpen ? <RentalTimeModal value={rentalWindow} onClose={() => setIsTimeOpen(false)} onConfirm={(selection) => { setRentalWindow(selection); setIsTimeOpen(false); }} /> : null}
     </div>,
