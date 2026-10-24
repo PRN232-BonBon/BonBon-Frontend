@@ -52,7 +52,7 @@ function VehicleCard({ vehicle, index }: { vehicle: VehicleListing; index: numbe
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: Math.min(index * 0.055, 0.32), ease: [0.16, 1, 0.3, 1] }}
     >
-      <a className="vehicle-card-image" href={`/cars/${vehicle.id}`} aria-label={`Xem ${vehicle.brand} ${vehicle.model}`}>
+      <a className="vehicle-card-image" href={`/cars?vehicle=${vehicle.id}`} aria-label={`Xem ${vehicle.brand} ${vehicle.model}`}>
         <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model} ${vehicle.year}`} />
         {vehicle.instantBook ? <span className="instant-book" title="Đặt xe nhanh"><Lightning weight="fill" /></span> : null}
       </a>
@@ -64,7 +64,7 @@ function VehicleCard({ vehicle, index }: { vehicle: VehicleListing; index: numbe
           {vehicle.depositFree ? <span><CheckCircle weight="fill" /> Miễn thế chấp</span> : null}
           {vehicle.deliveryAvailable ? <span><MapPin weight="fill" /> Giao xe tận nơi</span> : null}
         </div>
-        <a href={`/cars/${vehicle.id}`}><h2>{vehicle.brand} {vehicle.model} {vehicle.year}</h2></a>
+        <a href={`/cars?vehicle=${vehicle.id}`}><h2>{vehicle.brand} {vehicle.model} {vehicle.year}</h2></a>
         <div className="vehicle-specs">
           <span><SteeringWheel /> {vehicle.transmission === "Automatic" ? "Số tự động" : "Số sàn"}</span>
           <span><Seat /> {vehicle.seats} chỗ</span>
