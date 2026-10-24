@@ -888,10 +888,10 @@ img {
 
 .service-tabs {
   display: grid;
-  width: 540px;
+  width: 180px;
   min-height: 58px;
   margin: 0 auto;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   overflow: hidden;
   border-radius: 16px 16px 0 0;
   background: rgb(255 255 255 / 0.96);
@@ -2035,7 +2035,7 @@ html[data-theme="dark"] {
   }
 
   .service-tabs {
-    width: min(100%, 540px);
+    width: min(100%, 180px);
   }
 
   .service-tab {

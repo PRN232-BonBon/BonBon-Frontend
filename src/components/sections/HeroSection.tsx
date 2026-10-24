@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { CalendarBlank, Car, MagnifyingGlass, MapPin, SteeringWheel, Wallet } from "@phosphor-icons/react";
+import { CalendarBlank, MagnifyingGlass, MapPin, SteeringWheel } from "@phosphor-icons/react";
 import { motion, useReducedMotion } from "motion/react";
 import {
   createDefaultRentalSelection,
@@ -46,8 +46,6 @@ export function HeroSection() {
         >
           <div className="service-tabs" aria-label="Loại dịch vụ">
             <button className="service-tab active" type="button"><SteeringWheel size={21} weight="bold" /> Xe tự lái</button>
-            <button className="service-tab" type="button"><Car size={21} weight="bold" /> Xe có tài xế</button>
-            <button className="service-tab" type="button"><Wallet size={21} weight="bold" /> Thuê xe dài hạn</button>
           </div>
           <form className="search-panel" onSubmit={handleSubmit}>
           <label className="search-field location-field">
