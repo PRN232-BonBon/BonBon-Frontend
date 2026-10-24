@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, useReducedMotion } from "motion/react";
 import {
@@ -24,6 +24,7 @@ import {
   RentalTimeModal,
   type RentalSelection,
 } from "../booking/RentalTimeModal";
+import { CarDetailModal } from "./CarDetailModal";
 
 type SortValue = "recommended" | "price-asc" | "price-desc" | "rating";
 
@@ -42,7 +43,7 @@ function initialRentalSelection(): RentalSelection {
   return { rentalType, startAt, endAt, billableUnits, unitLabel: rentalType === "Hourly" ? "giờ" : "ngày" };
 }
 
-function VehicleCard({ vehicle, index }: { vehicle: VehicleListing; index: number }) {
+function VehicleCard({ vehicle, index, onOpen }: { vehicle: VehicleListing; index: number; onOpen: (vehicleId: string) => void }) {
   const [favorite, setFavorite] = useState(false);
   const reduceMotion = useReducedMotion();
   return (
@@ -52,7 +53,7 @@ function VehicleCard({ vehicle, index }: { vehicle: VehicleListing; index: numbe
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: Math.min(index * 0.055, 0.32), ease: [0.16, 1, 0.3, 1] }}
     >
-      <a className="vehicle-card-image" href={`/cars?vehicle=${vehicle.id}`} aria-label={`Xem ${vehicle.brand} ${vehicle.model}`}>
+      <a className="vehicle-card-image" href={`/cars?vehicle=${vehicle.id}`} aria-label={`Xem ${vehicle.brand} ${vehicle.model}`} onClick={(event) => { event.preventDefault(); onOpen(vehicle.id); }}>
         <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model} ${vehicle.year}`} />
         {vehicle.instantBook ? <span className="instant-book" title="Đặt xe nhanh"><Lightning weight="fill" /></span> : null}
       </a>
@@ -64,7 +65,7 @@ function VehicleCard({ vehicle, index }: { vehicle: VehicleListing; index: numbe
           {vehicle.depositFree ? <span><CheckCircle weight="fill" /> Miễn thế chấp</span> : null}
           {vehicle.deliveryAvailable ? <span><MapPin weight="fill" /> Giao xe tận nơi</span> : null}
         </div>
-        <a href={`/cars?vehicle=${vehicle.id}`}><h2>{vehicle.brand} {vehicle.model} {vehicle.year}</h2></a>
+        <a href={`/cars?vehicle=${vehicle.id}`} onClick={(event) => { event.preventDefault(); onOpen(vehicle.id); }}><h2>{vehicle.brand} {vehicle.model} {vehicle.year}</h2></a>
         <div className="vehicle-specs">
           <span><SteeringWheel /> {vehicle.transmission === "Automatic" ? "Số tự động" : "Số sàn"}</span>
           <span><Seat /> {vehicle.seats} chỗ</span>
@@ -82,6 +83,7 @@ function VehicleCard({ vehicle, index }: { vehicle: VehicleListing; index: numbe
 
 export function VehicleListPage() {
   const params = new URLSearchParams(window.location.search);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(params.get("vehicle"));
   const [location, setLocation] = useState(params.get("location") || "TP. Hồ Chí Minh");
   const [rentalWindow, setRentalWindow] = useState<RentalSelection>(initialRentalSelection);
   const [isTimeOpen, setIsTimeOpen] = useState(false);
@@ -93,6 +95,27 @@ export function VehicleListPage() {
   const [fuel, setFuel] = useState("all");
   const [sort, setSort] = useState<SortValue>("recommended");
   const [maxPrice, setMaxPrice] = useState(1500000);
+  const selectedVehicle = demoVehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? null;
+
+  useEffect(() => {
+    const syncSelectedVehicle = () => setSelectedVehicleId(new URLSearchParams(window.location.search).get("vehicle"));
+    window.addEventListener("popstate", syncSelectedVehicle);
+    return () => window.removeEventListener("popstate", syncSelectedVehicle);
+  }, []);
+
+  const openVehicle = (vehicleId: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("vehicle", vehicleId);
+    window.history.pushState({}, "", url);
+    setSelectedVehicleId(vehicleId);
+  };
+
+  const closeVehicle = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("vehicle");
+    window.history.replaceState({}, "", url);
+    setSelectedVehicleId(null);
+  };
 
   const brands = useMemo(() => [...new Set(demoVehicles.map((vehicle) => vehicle.brand))].sort(), []);
   const vehicles = useMemo(() => {
@@ -146,9 +169,10 @@ export function VehicleListPage() {
           <div><p>Xe tự lái</p><h1>Xe tại {location}</h1><span>{vehicles.length} xe phù hợp với lựa chọn của bạn</span></div>
           <label className="sort-control">Sắp xếp<select value={sort} onChange={(event) => setSort(event.target.value as SortValue)}><option value="recommended">Tối ưu</option><option value="price-asc">Giá thấp nhất</option><option value="price-desc">Giá cao nhất</option><option value="rating">Đánh giá tốt nhất</option></select><CaretDown /></label>
         </div>
-        {vehicles.length ? <div className="vehicle-grid">{vehicles.map((vehicle, index) => <VehicleCard vehicle={vehicle} index={index} key={vehicle.id} />)}</div> : <div className="vehicle-empty"><CarProfile size={56} /><h2>Chưa tìm thấy xe phù hợp</h2><p>Hãy thử nới lỏng một vài điều kiện lọc.</p><button type="button" onClick={resetFilters}>Xóa bộ lọc</button></div>}
+        {vehicles.length ? <div className="vehicle-grid">{vehicles.map((vehicle, index) => <VehicleCard vehicle={vehicle} index={index} onOpen={openVehicle} key={vehicle.id} />)}</div> : <div className="vehicle-empty"><CarProfile size={56} /><h2>Chưa tìm thấy xe phù hợp</h2><p>Hãy thử nới lỏng một vài điều kiện lọc.</p><button type="button" onClick={resetFilters}>Xóa bộ lọc</button></div>}
       </section>
 
+      {selectedVehicle ? <CarDetailModal vehicle={selectedVehicle} initialRentalWindow={rentalWindow} onClose={closeVehicle} /> : null}
       {isTimeOpen ? <RentalTimeModal value={rentalWindow} onClose={() => setIsTimeOpen(false)} onConfirm={(selection) => { setRentalWindow(selection); setIsTimeOpen(false); }} /> : null}
       {isFilterOpen ? createPortal(
         <div className="vehicle-filter-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsFilterOpen(false); }}>

@@ -87,7 +87,7 @@ export function formatRentalSummary(selection: RentalSelection) {
     minute: "2-digit",
     hourCycle: "h23",
   });
-  return `${formatter.format(start)} – ${formatter.format(end)}`;
+  return `${formatter.format(start)} - ${formatter.format(end)}`;
 }
 
 function CalendarMonth({
@@ -314,7 +314,7 @@ export function RentalTimeModal({ value, onClose, onConfirm }: RentalTimeModalPr
             <div className="rental-hourly-fields">
               <label><span>Ngày bắt đầu</span><input type="date" min={dateKey(new Date())} value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
               <label><span>Giờ nhận xe</span><span className="rental-select-wrap"><select value={startTime} onChange={(event) => setStartTime(event.target.value)}>{TIME_OPTIONS.map((time) => <option key={time}>{time}</option>)}</select><CaretDown size={18} /></span></label>
-              <label className="rental-duration-field"><span>Thời gian thuê</span><span className="rental-select-wrap"><select value={durationHours} onChange={(event) => setDurationHours(Number(event.target.value))}>{[4, 5, 6, 7, 8].map((hours) => <option value={hours} key={hours}>{hours} giờ — kết thúc {vietnamParts(addHours(draft.startAt, hours)).time}</option>)}</select><CaretDown size={18} /></span></label>
+              <label className="rental-duration-field"><span>Thời gian thuê</span><span className="rental-select-wrap"><select value={durationHours} onChange={(event) => setDurationHours(Number(event.target.value))}>{[4, 5, 6, 7, 8].map((hours) => <option value={hours} key={hours}>{hours} giờ - kết thúc {vietnamParts(addHours(draft.startAt, hours)).time}</option>)}</select><CaretDown size={18} /></span></label>
               <p className="rental-hourly-note">Thuê theo giờ phù hợp cho chuyến đi ngắn, tối đa 8 giờ.</p>
             </div>
           )}

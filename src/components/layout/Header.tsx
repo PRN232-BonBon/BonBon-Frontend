@@ -45,6 +45,15 @@ export function Header() {
     };
   }, [isAccountOpen]);
 
+  useEffect(() => {
+    const handleOpenAuth = (event: Event) => {
+      const mode = (event as CustomEvent<AuthMode>).detail;
+      setAuthMode(mode === "register" ? "register" : "login");
+    };
+    window.addEventListener("bonbon:open-auth", handleOpenAuth);
+    return () => window.removeEventListener("bonbon:open-auth", handleOpenAuth);
+  }, []);
+
   return (
     <header className="site-header">
       <div className="container header-inner">
