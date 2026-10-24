@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 import { CalendarBlank, MagnifyingGlass, MapPin, SteeringWheel } from "@phosphor-icons/react";
 import { motion, useReducedMotion } from "motion/react";
 import {
@@ -13,19 +13,6 @@ export function HeroSection() {
   const [location, setLocation] = useState("TP. Hồ Chí Minh");
   const [rentalWindow, setRentalWindow] = useState<RentalSelection>(createDefaultRentalSelection);
   const [isTimeOpen, setIsTimeOpen] = useState(false);
-  const [message, setMessage] = useState("");
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setMessage(`Đang tìm xe tại ${location}...`);
-    const params = new URLSearchParams({
-      location,
-      rentalType: rentalWindow.rentalType,
-      startAt: rentalWindow.startAt,
-      endAt: rentalWindow.endAt,
-    });
-    window.location.href = `/cars?${params.toString()}`;
-  }
 
   return (
     <main id="top" className="hero-section">
@@ -54,21 +41,24 @@ export function HeroSection() {
           <div className="service-tabs" aria-label="Loại dịch vụ">
             <button className="service-tab active" type="button"><SteeringWheel size={21} weight="bold" /> Xe tự lái</button>
           </div>
-          <form className="search-panel" onSubmit={handleSubmit}>
-          <label className="search-field location-field">
-            <MapPin size={22} weight="bold" />
-            <span>
-              <small>Địa điểm</small>
-              <select value={location} onChange={(event) => setLocation(event.target.value)}>
-                <option>TP. Hồ Chí Minh</option>
-                <option>Hà Nội</option>
-                <option>Đà Nẵng</option>
-                <option>Bình Dương</option>
-                <option>Đà Lạt</option>
-                <option>Hạ Long</option>
-              </select>
-            </span>
-          </label>
+          <form className="search-panel" action="/cars" method="get">
+            <input type="hidden" name="rentalType" value={rentalWindow.rentalType} />
+            <input type="hidden" name="startAt" value={rentalWindow.startAt} />
+            <input type="hidden" name="endAt" value={rentalWindow.endAt} />
+            <label className="search-field location-field">
+              <MapPin size={22} weight="bold" />
+              <span>
+                <small>Địa điểm</small>
+                <select name="location" value={location} onChange={(event) => setLocation(event.target.value)}>
+                  <option>TP. Hồ Chí Minh</option>
+                  <option>Hà Nội</option>
+                  <option>Đà Nẵng</option>
+                  <option>Bình Dương</option>
+                  <option>Đà Lạt</option>
+                  <option>Hạ Long</option>
+                </select>
+              </span>
+            </label>
 
           <button className="search-field rental-search-field" type="button" onClick={() => setIsTimeOpen(true)}>
             <CalendarBlank size={22} weight="bold" />
@@ -83,7 +73,6 @@ export function HeroSection() {
             <MagnifyingGlass size={20} weight="bold" />
             Tìm xe
           </button>
-            <p className="search-message" role="status">{message}</p>
           </form>
           {isTimeOpen ? (
             <RentalTimeModal
@@ -92,7 +81,6 @@ export function HeroSection() {
               onConfirm={(selection) => {
                 setRentalWindow(selection);
                 setIsTimeOpen(false);
-                setMessage("");
               }}
             />
           ) : null}
