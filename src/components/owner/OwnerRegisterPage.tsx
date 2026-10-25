@@ -341,7 +341,7 @@ export function OwnerRegisterPage() {
 
             <div className="owner-form-actions">
               {step > 1 ? <button className="owner-secondary-button" type="button" onClick={() => setStep((current) => Math.max(1, current - 1) as RegisterStep)}><ArrowLeft /> Quay lại</button> : <a className="owner-secondary-button" href="/become-owner"><ArrowLeft /> Quay lại</a>}
-              {step < 3 ? <button className="owner-primary-button" type="button" onClick={next}>Kế tiếp <ArrowRight /></button> : <button className="owner-primary-button" type="submit" disabled={submitting}>{submitting ? "Đang gửi..." : "Đăng ký"} <CheckCircle weight="fill" /></button>}
+              {step < 3 ? <button key="next" className="owner-primary-button" type="button" onClick={next}>Kế tiếp <ArrowRight /></button> : <button key="submit" className="owner-primary-button" type="submit" disabled={submitting}>{submitting ? "Đang gửi..." : "Đăng ký"} <CheckCircle weight="fill" /></button>}
             </div>
           </form>
         </section>
