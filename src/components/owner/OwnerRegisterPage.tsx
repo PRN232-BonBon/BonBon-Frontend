@@ -22,6 +22,7 @@ import {
   Usb,
 } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
+import { registerVehicle } from "../../owner/owner-api";
 
 type RegisterStep = 1 | 2 | 3;
 
@@ -128,6 +129,8 @@ export function OwnerRegisterPage() {
   const [vehicleImages, setVehicleImages] = useState<File[]>([]);
   const [registrationDocument, setRegistrationDocument] = useState<File | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const { session } = useAuth();
   const reduceMotion = useReducedMotion();
 
@@ -161,7 +164,7 @@ export function OwnerRegisterPage() {
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     const nextErrors = validateStep(3, draft, vehicleImages, registrationDocument);
     setErrors(nextErrors);
@@ -171,20 +174,53 @@ export function OwnerRegisterPage() {
       return;
     }
 
-    const registrations = JSON.parse(localStorage.getItem("bonbon.owner.vehicle-drafts") || "[]") as unknown[];
-    localStorage.setItem("bonbon.owner.vehicle-drafts", JSON.stringify([
-      ...registrations,
-      { ...draft, status: "PendingReview", createdAt: new Date().toISOString(), imageCount: vehicleImages.length },
-    ]));
-    setSubmitted(true);
-    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    if (!registrationDocument) return;
+    try {
+      setSubmitting(true);
+      setSubmitError("");
+      await registerVehicle(session, {
+        plateNumber: draft.plateNumber.trim(),
+        brand: draft.brand,
+        model: draft.model.trim(),
+        productionYear: Number(draft.productionYear),
+        seats: Number(draft.seats),
+        transmission: draft.transmission,
+        fuelType: draft.fuelType,
+        bodyType: draft.bodyType,
+        description: draft.description.trim(),
+        pickupAddress: draft.pickupAddress.trim(),
+        hourPrice: Number(draft.hourPrice),
+        dayPrice: Number(draft.dayPrice),
+        weeklyDiscountEnabled: draft.weeklyDiscountEnabled,
+        weeklyDiscountPercent: draft.weeklyDiscountEnabled ? Number(draft.weeklyDiscountPercent) : null,
+        mileageLimitEnabled: draft.mileageLimitEnabled,
+        dailyMileageLimitKm: draft.mileageLimitEnabled ? Number(draft.dailyMileageLimit) : null,
+        overageFeePerKm: draft.mileageLimitEnabled ? Number(draft.overageFeePerKm) : null,
+        rentalTerms: draft.rentalTerms.trim() || null,
+        features: draft.features,
+      }, vehicleImages, registrationDocument);
+      setSubmitted(true);
+      window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Không thể gửi đăng ký xe. Vui lòng thử lại.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const onVehicleImages = (event: ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/")).slice(0, 8);
-    setVehicleImages(selected);
+    const selected = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
+    setVehicleImages((current) => [...current, ...selected].slice(0, 8));
     setErrors((current) => ({ ...current, vehicleImages: "" }));
+    event.target.value = "";
   };
+
+  const makeCover = (index: number) => setVehicleImages((current) => {
+    const next = [...current];
+    const [cover] = next.splice(index, 1);
+    next.unshift(cover);
+    return next;
+  });
 
   if (submitted) {
     return (
@@ -295,17 +331,21 @@ export function OwnerRegisterPage() {
 
                 {step === 3 ? (
                   <>
-                    <div className="owner-form-section-heading"><ImageSquare size={25} weight="duotone" /><div><h2>Hình ảnh và giấy tờ</h2><p>Ảnh rõ nét giúp BonBon duyệt xe nhanh hơn và khách thuê dễ lựa chọn.</p></div></div>
-                    <div className="owner-upload-section">
-                      <div className="owner-upload-heading"><div><h3>Ảnh xe *</h3><p>Tải 3-8 ảnh ngoại thất và nội thất. Ảnh đầu tiên là ảnh đại diện.</p></div><label className="owner-upload-button"><UploadSimple size={19} /> Chọn ảnh<input type="file" accept="image/*" multiple onChange={onVehicleImages} /></label></div>
-                      {vehicleImageUrls.length ? <div className="owner-image-preview-grid">{vehicleImageUrls.map((url, index) => <figure key={url}><img src={url} alt={`Ảnh xe ${index + 1}`} />{index === 0 ? <span>Ảnh đại diện</span> : null}<button type="button" aria-label={`Xóa ảnh ${index + 1}`} onClick={() => setVehicleImages((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Trash /></button></figure>)}</div> : <label className="owner-dropzone"><Camera size={42} weight="duotone" /><strong>Thêm ảnh xe của bạn</strong><span>JPG, PNG hoặc WebP, tối đa 8 ảnh</span><input type="file" accept="image/*" multiple onChange={onVehicleImages} /></label>}
+                    <div className="owner-form-section-heading"><ImageSquare size={25} weight="duotone" /><div><h2>Hình ảnh</h2><p>Đăng nhiều hình ở các góc độ khác nhau để tăng thông tin cho xe của bạn.</p></div></div>
+                    <div className="owner-upload-section owner-vehicle-gallery">
+                      <div className="owner-gallery-meta"><div><h3>Ảnh xe *</h3><p>Tối thiểu 3 ảnh, tối đa 8 ảnh. Ảnh đầu tiên là ảnh đại diện.</p></div><strong>{vehicleImages.length}/8</strong></div>
+                      <div className="owner-image-preview-grid">
+                        {vehicleImages.length < 8 ? <label className="owner-add-image-tile"><Camera size={34} weight="duotone" /><strong>CHỌN HÌNH</strong><span>JPG, PNG, WebP</span><input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={onVehicleImages} /></label> : null}
+                        {vehicleImageUrls.map((url, index) => <figure key={url}><button className="owner-image-main-action" type="button" onClick={() => makeCover(index)} aria-label={`Đặt ảnh ${index + 1} làm ảnh đại diện`}><img src={url} alt={`Ảnh xe ${index + 1}`} /></button>{index === 0 ? <span>Ảnh đại diện</span> : null}<button className="owner-image-delete" type="button" aria-label={`Xóa ảnh ${index + 1}`} onClick={() => setVehicleImages((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Trash /></button></figure>)}
+                      </div>
                       <FieldError>{errors.vehicleImages}</FieldError>
                     </div>
                     <div className="owner-upload-section owner-document-section">
-                      <div className="owner-upload-heading"><div><h3>Giấy đăng ký xe *</h3><p>Chỉ dùng để xác minh quyền sở hữu, không hiển thị công khai.</p></div><label className="owner-upload-button"><FileText size={19} /> Chọn ảnh<input type="file" accept="image/*" onChange={(event) => { setRegistrationDocument(event.target.files?.[0] || null); setErrors((current) => ({ ...current, registrationDocument: "" })); }} /></label></div>
-                      {documentUrl ? <div className="owner-document-preview"><img src={documentUrl} alt="Ảnh giấy đăng ký xe" /><div><FileText size={24} /><span>{registrationDocument?.name}</span></div><button type="button" onClick={() => setRegistrationDocument(null)} aria-label="Xóa giấy đăng ký xe"><Trash /></button></div> : null}
+                      <div className="owner-upload-heading"><div><h3>Giấy đăng ký xe *</h3><p>Ảnh này được lưu riêng để xác minh và không hiển thị công khai.</p></div></div>
+                      {documentUrl ? <div className="owner-document-preview"><img src={documentUrl} alt="Ảnh giấy đăng ký xe" /><div><FileText size={24} /><span>{registrationDocument?.name}</span></div><button type="button" onClick={() => setRegistrationDocument(null)} aria-label="Xóa giấy đăng ký xe"><Trash /></button></div> : <label className="owner-document-picker"><UploadSimple size={28} /><strong>Chọn ảnh giấy đăng ký xe</strong><span>JPG, PNG hoặc WebP</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { setRegistrationDocument(event.target.files?.[0] || null); setErrors((current) => ({ ...current, registrationDocument: "" })); }} /></label>}
                       <FieldError>{errors.registrationDocument}</FieldError>
                     </div>
+                    {submitError ? <div className="owner-submit-error" role="alert">{submitError}</div> : null}
                   </>
                 ) : null}
               </motion.div>
@@ -313,7 +353,7 @@ export function OwnerRegisterPage() {
 
             <div className="owner-form-actions">
               {step > 1 ? <button className="owner-secondary-button" type="button" onClick={() => setStep((current) => Math.max(1, current - 1) as RegisterStep)}><ArrowLeft /> Quay lại</button> : <a className="owner-secondary-button" href="/become-owner"><ArrowLeft /> Quay lại</a>}
-              {step < 3 ? <button className="owner-primary-button" type="button" onClick={next}>Kế tiếp <ArrowRight /></button> : <button className="owner-primary-button" type="submit">Gửi đăng ký <CheckCircle weight="fill" /></button>}
+              {step < 3 ? <button className="owner-primary-button" type="button" onClick={next}>Kế tiếp <ArrowRight /></button> : <button className="owner-primary-button" type="submit" disabled={submitting}>{submitting ? "Đang gửi..." : "Đăng ký"} <CheckCircle weight="fill" /></button>}
             </div>
           </form>
         </section>
