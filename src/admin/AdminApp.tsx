@@ -27,7 +27,7 @@ function Login({ onLogin }: { onLogin: (session: AuthSession) => void }) {
   };
   return <div className="admin-login-page">
     <header><Brand /><a href="https://bonbon.kitsuracloud.com"><ArrowLeft /> Về BonBon</a></header>
-    <main className="admin-login-main"><div className="admin-login-intro"><span className="admin-login-icon"><ShieldCheck size={34} weight="duotone" /></span><h1>Quản trị BonBon</h1><p>Kiểm tra thông tin, duyệt xe và sẵn sàng<br />cho những hành trình mới.</p></div>
+    <main className="admin-login-main">
       <form className="admin-login-form" onSubmit={submit}>
         <h2>Đăng nhập quản trị</h2><p>Sử dụng tài khoản quản trị được cấp.</p>
         <label>Tên đăng nhập<input autoComplete="username" name="username" type="text" placeholder="bonbon@admin" required value={username} onChange={event => setUsername(event.target.value)} /></label>

@@ -25,10 +25,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .admin-login-page { min-height: 100dvh; display: flex; flex-direction: column; background: #fbfbf9; }
 .admin-login-page > header { height: 96px; padding: 0 58px; display: flex; align-items: center; justify-content: space-between; }
 .admin-login-page > header > a { display: flex; align-items: center; gap: 9px; color: #71736b; font-size: 12px; }
-.admin-login-main { flex: 1; display: grid; grid-template-columns: 1fr 430px; align-items: center; gap: 100px; width: min(960px, calc(100% - 140px)); margin: 40px auto 90px; }
-.admin-login-icon { display: grid; width: 72px; height: 72px; place-items: center; border-radius: 16px; background: #fff2c7; color: #b47a00; }
-.admin-login-intro h1 { margin: 27px 0 16px; font-size: 38px; font-weight: 800; letter-spacing: -.045em; line-height: 1.2; }
-.admin-login-intro p { color: #787a71; font-size: 15px; line-height: 1.9; }
+.admin-login-main { flex: 1; display: grid; align-content: center; width: min(430px, calc(100% - 80px)); margin: 0 auto; padding: 32px 0; }
 .admin-login-form { padding: 35px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
 .admin-login-form h2 { margin: 0 0 8px; font-size: 21px; letter-spacing: -.025em; }
 .admin-login-form > p:not(.admin-error) { margin: 0 0 28px; color: var(--muted); font-size: 12px; }
