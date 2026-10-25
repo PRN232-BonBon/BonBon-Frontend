@@ -17,7 +17,8 @@ import {
   SteeringWheel,
   X,
 } from "@phosphor-icons/react";
-import { demoVehicles, type VehicleListing } from "../../data/demo-vehicles";
+import type { VehicleListing } from "../../data/demo-vehicles";
+import { getVehicleCatalog } from "../../owner/catalog-api";
 import {
   createDefaultRentalSelection,
   formatRentalSummary,
@@ -73,7 +74,7 @@ function VehicleCard({ vehicle, index, onOpen }: { vehicle: VehicleListing; inde
         </div>
         <p className="vehicle-address"><MapPin weight="fill" /> {vehicle.pickupAddress}</p>
         <div className="vehicle-card-footer">
-          <span className="vehicle-rating"><Star weight="fill" /> {vehicle.rating.toFixed(1)} <i>•</i> {vehicle.completedTrips} chuyến</span>
+          <span className="vehicle-rating">{vehicle.rating > 0 ? <><Star weight="fill" /> {vehicle.rating.toFixed(1)} <i>•</i> {vehicle.completedTrips} chuyến</> : "Xe mới"}</span>
           <strong>{money.format(vehicle.dayPrice / 1000)}K<small>/ngày</small></strong>
         </div>
       </div>
@@ -95,7 +96,18 @@ export function VehicleListPage() {
   const [fuel, setFuel] = useState("all");
   const [sort, setSort] = useState<SortValue>("recommended");
   const [maxPrice, setMaxPrice] = useState(1500000);
-  const selectedVehicle = demoVehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? null;
+  const [catalog, setCatalog] = useState<VehicleListing[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState("");
+  const selectedVehicle = catalog.find((vehicle) => vehicle.id === selectedVehicleId) ?? null;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getVehicleCatalog(controller.signal).then(setCatalog).catch(error => {
+      if (!controller.signal.aborted) setCatalogError(error instanceof Error ? error.message : "Không thể tải danh sách xe.");
+    }).finally(() => { if (!controller.signal.aborted) setCatalogLoading(false); });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const syncSelectedVehicle = () => setSelectedVehicleId(new URLSearchParams(window.location.search).get("vehicle"));
@@ -117,9 +129,9 @@ export function VehicleListPage() {
     setSelectedVehicleId(null);
   };
 
-  const brands = useMemo(() => [...new Set(demoVehicles.map((vehicle) => vehicle.brand))].sort(), []);
+  const brands = useMemo(() => [...new Set(catalog.map((vehicle) => vehicle.brand))].sort(), [catalog]);
   const vehicles = useMemo(() => {
-    const matches = demoVehicles.filter((vehicle) =>
+    const matches = catalog.filter((vehicle) =>
       (bodyType === "all" || vehicle.bodyType === bodyType)
       && (brand === "all" || vehicle.brand === brand)
       && (transmission === "all" || vehicle.transmission === transmission)
@@ -133,7 +145,7 @@ export function VehicleListPage() {
       if (sort === "rating") return b.rating - a.rating || b.completedTrips - a.completedTrips;
       return Number(b.instantBook) - Number(a.instantBook) || b.completedTrips - a.completedTrips;
     });
-  }, [bodyType, brand, fuel, maxPrice, seats, sort, transmission]);
+  }, [catalog, bodyType, brand, fuel, maxPrice, seats, sort, transmission]);
 
   const resetFilters = () => {
     setBodyType("all"); setBrand("all"); setTransmission("all"); setSeats("all"); setFuel("all"); setSort("recommended"); setMaxPrice(1500000);
@@ -169,7 +181,7 @@ export function VehicleListPage() {
           <div><p>Xe tự lái</p><h1>Xe tại {location}</h1><span>{vehicles.length} xe phù hợp với lựa chọn của bạn</span></div>
           <label className="sort-control">Sắp xếp<select value={sort} onChange={(event) => setSort(event.target.value as SortValue)}><option value="recommended">Tối ưu</option><option value="price-asc">Giá thấp nhất</option><option value="price-desc">Giá cao nhất</option><option value="rating">Đánh giá tốt nhất</option></select><CaretDown /></label>
         </div>
-        {vehicles.length ? <div className="vehicle-grid">{vehicles.map((vehicle, index) => <VehicleCard vehicle={vehicle} index={index} onOpen={openVehicle} key={vehicle.id} />)}</div> : <div className="vehicle-empty"><CarProfile size={56} /><h2>Chưa tìm thấy xe phù hợp</h2><p>Hãy thử nới lỏng một vài điều kiện lọc.</p><button type="button" onClick={resetFilters}>Xóa bộ lọc</button></div>}
+        {catalogLoading ? <div className="vehicle-empty" role="status"><CarProfile size={56} /><p>Đang tải danh sách xe…</p></div> : catalogError ? <div className="vehicle-empty" role="alert"><h2>Chưa thể tải danh sách xe</h2><p>{catalogError}</p><button type="button" onClick={() => window.location.reload()}>Thử lại</button></div> : vehicles.length ? <div className="vehicle-grid">{vehicles.map((vehicle, index) => <VehicleCard vehicle={vehicle} index={index} onOpen={openVehicle} key={vehicle.id} />)}</div> : <div className="vehicle-empty"><CarProfile size={56} /><h2>Chưa tìm thấy xe phù hợp</h2><p>Hãy thử nới lỏng một vài điều kiện lọc.</p><button type="button" onClick={resetFilters}>Xóa bộ lọc</button></div>}
       </section>
 
       {selectedVehicle ? <CarDetailModal vehicle={selectedVehicle} initialRentalWindow={rentalWindow} onClose={closeVehicle} /> : null}

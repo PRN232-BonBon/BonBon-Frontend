@@ -135,7 +135,7 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
               <section className="car-title-section">
                 <div>
                   <h1 id="car-detail-title">{vehicle.brand} {vehicle.model} {vehicle.year}</h1>
-                  <p><Star weight="fill" /> {vehicle.rating.toFixed(1)} <span>•</span> {vehicle.completedTrips} chuyến <span>•</span> {vehicle.pickupAddress}</p>
+                  <p>{vehicle.rating > 0 ? <><Star weight="fill" /> {vehicle.rating.toFixed(1)} <span>•</span> {vehicle.completedTrips} chuyến</> : "Xe mới"} <span>•</span> {vehicle.pickupAddress}</p>
                 </div>
                 <button className={isFavorite ? "is-active" : ""} type="button" onClick={() => setIsFavorite((value) => !value)} aria-label={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}><Heart size={23} weight={isFavorite ? "fill" : "bold"} /></button>
               </section>

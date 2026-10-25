@@ -1,5 +1,5 @@
 export type VehicleTransmission = "Automatic" | "Manual";
-export type VehicleFuel = "Gasoline" | "Electric";
+export type VehicleFuel = "Gasoline" | "Electric" | "Diesel" | "Hybrid";
 export type VehicleBodyType = "Sedan" | "SUV" | "MPV" | "Hatchback";
 
 export interface VehicleListing {
