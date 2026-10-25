@@ -14,7 +14,6 @@ import {
   ImageSquare,
   MapPin,
   Monitor,
-  Percent,
   SecurityCamera,
   ShieldCheck,
   Tire,
@@ -228,24 +227,28 @@ export function OwnerRegisterPage() {
                 ) : null}
 
                 {step === 2 ? (
-                  <>
-                    <div className="owner-form-section-heading"><Percent size={25} weight="duotone" /><div><h2>Thông tin cho thuê</h2><p>Thiết lập đơn giá và ưu đãi rõ ràng cho từng hình thức thuê xe.</p></div></div>
-                    <section className="owner-rental-block">
-                      <div className="owner-rental-block-heading"><div><h3>Đơn giá cho thuê</h3><p>Giá được áp dụng mặc định. Bạn có thể điều chỉnh lại sau khi xe được duyệt.</p></div></div>
-                      <div className="owner-form-grid owner-rental-price-grid">
-                      <label><span>Giá thuê theo giờ *</span><div className="owner-price-input"><input type="number" min="50000" step="10000" value={draft.hourPrice} onChange={(event) => setField("hourPrice", event.target.value)} placeholder="120000" /><b>đ/giờ</b></div><FieldError>{errors.hourPrice}</FieldError></label>
-                      <label><span>Giá thuê theo ngày *</span><div className="owner-price-input"><input type="number" min="300000" step="10000" value={draft.dayPrice} onChange={(event) => setField("dayPrice", event.target.value)} placeholder="700000" /><b>đ/ngày</b></div><FieldError>{errors.dayPrice}</FieldError></label>
+                  <div className="owner-mioto-rental">
+                    <section className="owner-mioto-section owner-mioto-pricing">
+                      <h2>Đơn giá thuê mặc định</h2>
+                      <p>Đơn giá áp dụng cho tất cả các ngày. Bạn có thể điều chỉnh lại sau khi xe được duyệt.</p>
+                      <div className="owner-mioto-price-grid">
+                        <label><span>Giá thuê theo giờ *</span><small>Giá đề xuất: 120K</small><div className="owner-price-input"><input type="number" min="50000" step="10000" value={draft.hourPrice} onChange={(event) => setField("hourPrice", event.target.value)} placeholder="120000" /><b>đ/giờ</b></div><FieldError>{errors.hourPrice}</FieldError></label>
+                        <label><span>Giá thuê theo ngày *</span><small>Giá đề xuất: 700K</small><div className="owner-price-input"><input type="number" min="300000" step="10000" value={draft.dayPrice} onChange={(event) => setField("dayPrice", event.target.value)} placeholder="700000" /><b>đ/ngày</b></div><FieldError>{errors.dayPrice}</FieldError></label>
                       </div>
                     </section>
-                    <section className={`owner-rental-block owner-discount-block${draft.weeklyDiscountEnabled ? " is-enabled" : ""}`}>
-                      <div className="owner-rental-block-heading"><div><h3>Giảm giá thuê tuần</h3><p>Áp dụng tự động cho khách thuê từ 7 ngày, chỉ tính trên đơn giá theo ngày.</p></div><label className="owner-toggle"><input aria-label="Bật giảm giá thuê tuần" type="checkbox" checked={draft.weeklyDiscountEnabled} onChange={(event) => { setDraft((current) => ({ ...current, weeklyDiscountEnabled: event.target.checked })); setErrors((current) => ({ ...current, weeklyDiscountPercent: "" })); }} /><span aria-hidden="true" /></label></div>
-                      {draft.weeklyDiscountEnabled ? <div className="owner-discount-controls"><label><span>Mức giảm giá</span><input type="range" min="5" max="30" step="1" value={draft.weeklyDiscountPercent} onChange={(event) => setField("weeklyDiscountPercent", event.target.value)} /></label><div className="owner-discount-value"><input aria-label="Phần trăm giảm giá thuê tuần" type="number" min="5" max="30" value={draft.weeklyDiscountPercent} onChange={(event) => setField("weeklyDiscountPercent", event.target.value)} /><b>%</b></div><p>Khách thuê từ 7 ngày được giảm <strong>{draft.weeklyDiscountPercent || 0}%</strong> trên tổng giá thuê theo ngày.</p><FieldError>{errors.weeklyDiscountPercent}</FieldError></div> : null}
+                    <section className="owner-mioto-section owner-mioto-discount">
+                      <div className="owner-mioto-title-row"><h2>Giảm giá</h2><label className="owner-toggle"><input aria-label="Bật giảm giá thuê tuần" type="checkbox" checked={draft.weeklyDiscountEnabled} onChange={(event) => { setDraft((current) => ({ ...current, weeklyDiscountEnabled: event.target.checked })); setErrors((current) => ({ ...current, weeklyDiscountPercent: "" })); }} /><span aria-hidden="true" /></label></div>
+                      <label className="owner-discount-label" htmlFor="weekly-discount">Giảm giá thuê tuần (% trên đơn giá)</label>
+                      <div className={`owner-mioto-slider${draft.weeklyDiscountEnabled ? " is-enabled" : ""}`}><input id="weekly-discount" aria-label="Phần trăm giảm giá thuê tuần" type="range" min="5" max="30" step="1" value={draft.weeklyDiscountPercent} disabled={!draft.weeklyDiscountEnabled} onChange={(event) => setField("weeklyDiscountPercent", event.target.value)} /><strong>{draft.weeklyDiscountEnabled ? draft.weeklyDiscountPercent : 0}%</strong></div>
+                      <p className="owner-discount-suggestion">Giảm đề xuất: 10%</p>
+                      <p className="owner-discount-note">Áp dụng tự động khi khách thuê từ 7 ngày và chỉ tính trên đơn giá theo ngày.</p>
+                      <FieldError>{errors.weeklyDiscountPercent}</FieldError>
                     </section>
-                    <section className="owner-rental-block owner-address-block">
-                      <div className="owner-rental-block-heading"><div><h3>Địa chỉ nhận xe</h3><p>Khách thuê sẽ nhận và trả xe trực tiếp tại địa chỉ này.</p></div><MapPin size={23} weight="duotone" /></div>
-                      <div className="owner-form-grid"><label className="owner-field-wide"><span>Địa chỉ nhận xe *</span><input value={draft.pickupAddress} onChange={(event) => setField("pickupAddress", event.target.value)} placeholder="Số nhà, đường, phường/xã, quận/huyện, thành phố" /><FieldError>{errors.pickupAddress}</FieldError></label></div>
+                    <section className="owner-mioto-section owner-mioto-address">
+                      <h2>Địa chỉ xe</h2>
+                      <label><span>Địa chỉ nhận xe *</span><div><input value={draft.pickupAddress} onChange={(event) => setField("pickupAddress", event.target.value)} placeholder="Địa chỉ mặc định để nhận và trả xe" /><MapPin size={21} /></div><FieldError>{errors.pickupAddress}</FieldError></label>
                     </section>
-                  </>
+                  </div>
                 ) : null}
 
                 {step === 3 ? (
