@@ -1,4 +1,4 @@
-import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, type CSSProperties, type FormEvent, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   ArrowLeft,
@@ -40,6 +40,10 @@ interface VehicleDraft {
   dayPrice: string;
   weeklyDiscountEnabled: boolean;
   weeklyDiscountPercent: string;
+  mileageLimitEnabled: boolean;
+  dailyMileageLimit: string;
+  overageFeePerKm: string;
+  rentalTerms: string;
   features: string[];
 }
 
@@ -58,6 +62,10 @@ const initialDraft: VehicleDraft = {
   dayPrice: "",
   weeklyDiscountEnabled: false,
   weeklyDiscountPercent: "10",
+  mileageLimitEnabled: true,
+  dailyMileageLimit: "400",
+  overageFeePerKm: "3000",
+  rentalTerms: "",
   features: [],
 };
 
@@ -79,6 +87,11 @@ function FieldError({ children }: { children?: string }) {
   return children ? <small className="owner-field-error">{children}</small> : null;
 }
 
+function rangeStyle(value: string, min: number, max: number, enabled: boolean): CSSProperties {
+  const progress = enabled ? ((Number(value) - min) / (max - min)) * 100 : 0;
+  return { "--owner-range-progress": `${Math.min(100, Math.max(0, progress))}%` } as CSSProperties;
+}
+
 function validateStep(step: RegisterStep, draft: VehicleDraft, vehicleImages: File[], registrationDocument: File | null) {
   const errors: Record<string, string> = {};
   if (step === 1) {
@@ -93,6 +106,12 @@ function validateStep(step: RegisterStep, draft: VehicleDraft, vehicleImages: Fi
     if (!draft.dayPrice || Number(draft.dayPrice) < 300000) errors.dayPrice = "Giá theo ngày tối thiểu 300.000đ.";
     if (draft.weeklyDiscountEnabled && (Number(draft.weeklyDiscountPercent) < 5 || Number(draft.weeklyDiscountPercent) > 30)) {
       errors.weeklyDiscountPercent = "Mức giảm giá cần nằm trong khoảng 5% đến 30%.";
+    }
+    if (draft.mileageLimitEnabled && (Number(draft.dailyMileageLimit) < 100 || Number(draft.dailyMileageLimit) > 800)) {
+      errors.dailyMileageLimit = "Giới hạn quãng đường cần nằm trong khoảng 100km đến 800km mỗi ngày.";
+    }
+    if (draft.mileageLimitEnabled && (Number(draft.overageFeePerKm) < 1000 || Number(draft.overageFeePerKm) > 10000)) {
+      errors.overageFeePerKm = "Phí vượt giới hạn cần nằm trong khoảng 1.000đ đến 10.000đ mỗi km.";
     }
   }
   if (step === 3) {
@@ -239,7 +258,7 @@ export function OwnerRegisterPage() {
                     <section className="owner-mioto-section owner-mioto-discount">
                       <div className="owner-mioto-title-row"><h2>Giảm giá</h2><label className="owner-toggle"><input aria-label="Bật giảm giá thuê tuần" type="checkbox" checked={draft.weeklyDiscountEnabled} onChange={(event) => { setDraft((current) => ({ ...current, weeklyDiscountEnabled: event.target.checked })); setErrors((current) => ({ ...current, weeklyDiscountPercent: "" })); }} /><span aria-hidden="true" /></label></div>
                       <label className="owner-discount-label" htmlFor="weekly-discount">Giảm giá thuê tuần (% trên đơn giá)</label>
-                      <div className={`owner-mioto-slider${draft.weeklyDiscountEnabled ? " is-enabled" : ""}`}><input id="weekly-discount" aria-label="Phần trăm giảm giá thuê tuần" type="range" min="5" max="30" step="1" value={draft.weeklyDiscountPercent} disabled={!draft.weeklyDiscountEnabled} onChange={(event) => setField("weeklyDiscountPercent", event.target.value)} /><strong>{draft.weeklyDiscountEnabled ? draft.weeklyDiscountPercent : 0}%</strong></div>
+                      <div className={`owner-mioto-slider${draft.weeklyDiscountEnabled ? " is-enabled" : ""}`}><input id="weekly-discount" aria-label="Phần trăm giảm giá thuê tuần" type="range" min="5" max="30" step="1" value={draft.weeklyDiscountPercent} disabled={!draft.weeklyDiscountEnabled} style={rangeStyle(draft.weeklyDiscountPercent, 5, 30, draft.weeklyDiscountEnabled)} onChange={(event) => setField("weeklyDiscountPercent", event.target.value)} /><strong>{draft.weeklyDiscountEnabled ? draft.weeklyDiscountPercent : 0}%</strong></div>
                       <p className="owner-discount-suggestion">Giảm đề xuất: 10%</p>
                       <p className="owner-discount-note">Áp dụng tự động khi khách thuê từ 7 ngày và chỉ tính trên đơn giá theo ngày.</p>
                       <FieldError>{errors.weeklyDiscountPercent}</FieldError>
@@ -247,6 +266,29 @@ export function OwnerRegisterPage() {
                     <section className="owner-mioto-section owner-mioto-address">
                       <h2>Địa chỉ xe</h2>
                       <label><span>Địa chỉ nhận xe *</span><div><input value={draft.pickupAddress} onChange={(event) => setField("pickupAddress", event.target.value)} placeholder="Địa chỉ mặc định để nhận và trả xe" /><MapPin size={21} /></div><FieldError>{errors.pickupAddress}</FieldError></label>
+                    </section>
+                    <section className="owner-mioto-section owner-mioto-mileage">
+                      <div className="owner-mioto-title-row"><h2>Giới hạn số km</h2><label className="owner-toggle"><input aria-label="Bật giới hạn số km" type="checkbox" checked={draft.mileageLimitEnabled} onChange={(event) => { setDraft((current) => ({ ...current, mileageLimitEnabled: event.target.checked })); setErrors((current) => ({ ...current, dailyMileageLimit: "", overageFeePerKm: "" })); }} /><span aria-hidden="true" /></label></div>
+                      <div className="owner-mileage-grid">
+                        <div className="owner-mileage-control">
+                          <label htmlFor="daily-mileage-limit">Số km tối đa trong 1 ngày</label>
+                          <div className={`owner-mioto-slider${draft.mileageLimitEnabled ? " is-enabled" : ""}`}><input id="daily-mileage-limit" aria-label="Số km tối đa trong một ngày" type="range" min="100" max="800" step="50" value={draft.dailyMileageLimit} disabled={!draft.mileageLimitEnabled} style={rangeStyle(draft.dailyMileageLimit, 100, 800, draft.mileageLimitEnabled)} onChange={(event) => setField("dailyMileageLimit", event.target.value)} /><strong>{draft.mileageLimitEnabled ? draft.dailyMileageLimit : 0}km</strong></div>
+                          <p>Số km đề xuất: 400km</p>
+                          <FieldError>{errors.dailyMileageLimit}</FieldError>
+                        </div>
+                        <div className="owner-mileage-control">
+                          <label htmlFor="overage-fee">Phí vượt giới hạn (tính mỗi km)</label>
+                          <div className={`owner-mioto-slider${draft.mileageLimitEnabled ? " is-enabled" : ""}`}><input id="overage-fee" aria-label="Phí vượt giới hạn tính mỗi km" type="range" min="1000" max="10000" step="500" value={draft.overageFeePerKm} disabled={!draft.mileageLimitEnabled} style={rangeStyle(draft.overageFeePerKm, 1000, 10000, draft.mileageLimitEnabled)} onChange={(event) => setField("overageFeePerKm", event.target.value)} /><strong>{draft.mileageLimitEnabled ? Number(draft.overageFeePerKm) / 1000 : 0}K</strong></div>
+                          <p>Phí đề xuất: 3K</p>
+                          <FieldError>{errors.overageFeePerKm}</FieldError>
+                        </div>
+                      </div>
+                    </section>
+                    <section className="owner-mioto-section owner-mioto-terms">
+                      <h2>Điều khoản thuê xe</h2>
+                      <p>Ghi rõ các yêu cầu để khách có thể thuê xe.</p>
+                      <label htmlFor="rental-terms" className="sr-only">Điều khoản thuê xe</label>
+                      <textarea id="rental-terms" value={draft.rentalTerms} onChange={(event) => setField("rentalTerms", event.target.value)} placeholder="Không sử dụng xe vào mục đích phi pháp. Lái xe cẩn thận, giữ xe sạch sẽ, trả xe đúng giờ. Phụ thu 500K nếu hút thuốc lá trong xe." rows={5} />
                     </section>
                   </div>
                 ) : null}

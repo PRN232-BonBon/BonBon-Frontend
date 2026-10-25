@@ -326,17 +326,33 @@ img {
 .owner-toggle input:focus-visible + span { box-shadow: 0 0 0 3px rgb(244 176 0 / .2); }
 .owner-discount-label { display: block; margin-top: 22px; color: #41413e; font-size: .76rem; }
 .owner-mioto-slider { display: grid; grid-template-columns: minmax(0, 1fr) 48px; align-items: center; gap: 14px; margin-top: 14px; }
-.owner-mioto-slider input { width: 100%; cursor: not-allowed; accent-color: #c8c8c3; }
-.owner-mioto-slider.is-enabled input { cursor: pointer; accent-color: #d89a00; }
+.owner-mioto-slider input { width: 100%; height: 14px; appearance: none; border: 0; background: transparent; cursor: not-allowed; }
+.owner-mioto-slider input::-webkit-slider-runnable-track { height: 8px; border-radius: 0; background: linear-gradient(to right, var(--accent) 0 var(--owner-range-progress), #c8c8c3 var(--owner-range-progress) 100%); }
+.owner-mioto-slider input::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -4px; appearance: none; border: 0; border-radius: 50%; background: #272724; box-shadow: none; }
+.owner-mioto-slider input::-moz-range-track { height: 8px; border: 0; border-radius: 0; background: #c8c8c3; }
+.owner-mioto-slider input::-moz-range-progress { height: 8px; background: var(--accent); }
+.owner-mioto-slider input::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: #272724; }
+.owner-mioto-slider input:disabled::-webkit-slider-runnable-track { background: #c8c8c3; }
+.owner-mioto-slider input:disabled::-moz-range-progress { background: #c8c8c3; }
+.owner-mioto-slider.is-enabled input { cursor: pointer; }
 .owner-mioto-slider strong { color: #3f3f3b; font-size: .76rem; text-align: right; }
 .owner-mioto-discount .owner-discount-suggestion { margin-top: 7px; color: #aaa9a4; font-size: .7rem; }
 .owner-mioto-discount .owner-discount-note { margin-top: 17px; color: #777772; font-size: .72rem; }
 .owner-mioto-discount .owner-field-error { display: block; margin-top: 7px; }
-.owner-mioto-address { margin-bottom: 6px; }
+.owner-mioto-address { margin-bottom: 46px; }
 .owner-mioto-address > label { display: grid; gap: 8px; margin-top: 20px; }
 .owner-mioto-address label > div { position: relative; }
 .owner-mioto-address input { padding: 0 48px 0 13px; }
 .owner-mioto-address label svg { position: absolute; top: 50%; right: 14px; color: #5a5a56; transform: translateY(-50%); pointer-events: none; }
+.owner-mileage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 22px; }
+.owner-mileage-control > label { color: #41413e; font-size: .76rem; }
+.owner-mileage-control .owner-mioto-slider { grid-template-columns: minmax(0, 1fr) 54px; margin-top: 13px; }
+.owner-mileage-control > p { margin: 7px 0 0; color: #aaa9a4; font-size: .7rem; }
+.owner-mileage-control .owner-field-error { display: block; margin-top: 7px; line-height: 1.45; }
+.owner-mioto-terms { margin-bottom: 4px; }
+.owner-mioto-terms textarea { width: 100%; min-height: 110px; margin-top: 18px; border: 1px solid #dcdcd7; border-radius: 8px; padding: 13px 15px; background: #fff; color: #262624; font: inherit; font-size: .76rem; line-height: 1.55; outline: 0; resize: vertical; transition: border-color 160ms ease, box-shadow 160ms ease; }
+.owner-mioto-terms textarea::placeholder { color: #999994; opacity: 1; }
+.owner-mioto-terms textarea:focus { border-color: #c8910b; box-shadow: 0 0 0 3px rgb(244 176 0 / .15); }
 
 .owner-feature-fieldset { margin: 30px 0 0; border: 0; padding: 0; }
 .owner-feature-fieldset legend { margin-bottom: 5px; color: #2e2e2b; font-size: .9rem; font-weight: 820; }
