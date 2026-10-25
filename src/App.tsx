@@ -12,6 +12,8 @@ import { TripsPage } from "./components/portal/TripsPage";
 import { AddressesPage } from "./components/portal/AddressesPage";
 import { ChangePasswordPage } from "./components/portal/ChangePasswordPage";
 import { VehicleListPage } from "./components/vehicles/VehicleListPage";
+import { OwnerLandingPage } from "./components/owner/OwnerLandingPage";
+import { OwnerRegisterPage } from "./components/owner/OwnerRegisterPage";
 import { useAuth } from "./auth/AuthContext";
 import type { ComponentType } from "react";
 
@@ -34,6 +36,14 @@ export default function App() {
 
   if (path === "/cars") {
     return <div className="app-shell vehicle-list-app"><Header /><VehicleListPage /></div>;
+  }
+
+  if (path === "/become-owner") {
+    return <div className="app-shell owner-app"><Header /><OwnerLandingPage /><Footer /></div>;
+  }
+
+  if (path === "/owner/register") {
+    return <div className="app-shell owner-app"><Header /><OwnerRegisterPage /></div>;
   }
 
   return (

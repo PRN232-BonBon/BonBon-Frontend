@@ -5,7 +5,7 @@ import { AuthModal, type AuthMode } from "../auth/AuthModal";
 
 const links = [
   { label: "Về BonBon", href: "/#uu-diem" },
-  { label: "Trở thành chủ xe", href: "/#dich-vu" },
+  { label: "Trở thành chủ xe", href: "/become-owner" },
 ];
 
 export function Header() {
