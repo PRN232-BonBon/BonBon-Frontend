@@ -3,15 +3,23 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   ArrowLeft,
   ArrowRight,
+  Baby,
+  Bluetooth,
   Camera,
   CarProfile,
   Check,
   CheckCircle,
+  ContactlessPayment,
   FileText,
   ImageSquare,
   MapPin,
+  Monitor,
+  SecurityCamera,
+  ShieldCheck,
+  Tire,
   Trash,
   UploadSimple,
+  Usb,
 } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
 
@@ -49,7 +57,17 @@ const initialDraft: VehicleDraft = {
   features: [],
 };
 
-const features = ["Bluetooth", "Camera lùi", "Camera 360", "Định vị GPS", "Khe cắm USB", "Cảm biến va chạm", "Túi khí an toàn", "Màn hình giải trí"];
+const amenities = [
+  { label: "Bluetooth", icon: Bluetooth },
+  { label: "Camera lùi", icon: SecurityCamera },
+  { label: "Định vị GPS", icon: MapPin },
+  { label: "Ghế trẻ em", icon: Baby },
+  { label: "Khe cắm USB", icon: Usb },
+  { label: "Lốp dự phòng", icon: Tire },
+  { label: "Màn hình giải trí", icon: Monitor },
+  { label: "ETC", icon: ContactlessPayment },
+  { label: "Túi khí an toàn", icon: ShieldCheck },
+];
 const brands = ["Toyota", "Hyundai", "Kia", "Mazda", "Mitsubishi", "Honda", "Ford", "VinFast", "Mercedes-Benz", "Khác"];
 const years = Array.from({ length: 17 }, (_, index) => String(new Date().getFullYear() - index));
 
@@ -208,7 +226,7 @@ export function OwnerRegisterPage() {
                       <label><span>Giá thuê theo giờ *</span><div className="owner-price-input"><input type="number" min="50000" step="10000" value={draft.hourPrice} onChange={(event) => setField("hourPrice", event.target.value)} placeholder="120000" /><b>đ/giờ</b></div><FieldError>{errors.hourPrice}</FieldError></label>
                       <label><span>Giá thuê theo ngày *</span><div className="owner-price-input"><input type="number" min="300000" step="10000" value={draft.dayPrice} onChange={(event) => setField("dayPrice", event.target.value)} placeholder="700000" /><b>đ/ngày</b></div><FieldError>{errors.dayPrice}</FieldError></label>
                     </div>
-                    <fieldset className="owner-feature-fieldset"><legend>Tính năng nổi bật</legend><div>{features.map((feature) => <label key={feature} className={draft.features.includes(feature) ? "is-selected" : ""}><input type="checkbox" checked={draft.features.includes(feature)} onChange={() => toggleFeature(feature)} /><CheckCircle weight={draft.features.includes(feature) ? "fill" : "regular"} />{feature}</label>)}</div></fieldset>
+                    <fieldset className="owner-feature-fieldset"><legend>Tiện nghi xe</legend><p>Chọn những tiện nghi hiện có trên xe của bạn.</p><div>{amenities.map(({ label, icon: Icon }) => <label key={label} className={draft.features.includes(label) ? "is-selected" : ""}><input type="checkbox" checked={draft.features.includes(label)} onChange={() => toggleFeature(label)} /><Icon className="owner-feature-icon" size={27} weight="regular" /><span>{label}</span><CheckCircle className="owner-feature-check" size={18} weight="fill" /></label>)}</div></fieldset>
                   </>
                 ) : null}
 
