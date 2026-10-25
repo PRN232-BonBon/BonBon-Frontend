@@ -10,7 +10,6 @@ import {
   Check,
   CheckCircle,
   ContactlessPayment,
-  FileText,
   ImageSquare,
   MapPin,
   Monitor,
@@ -18,7 +17,6 @@ import {
   ShieldCheck,
   Tire,
   Trash,
-  UploadSimple,
   Usb,
 } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
@@ -93,7 +91,7 @@ function rangeStyle(value: string, min: number, max: number, enabled: boolean): 
   return { "--owner-range-progress": `${Math.min(100, Math.max(0, progress))}%` } as CSSProperties;
 }
 
-function validateStep(step: RegisterStep, draft: VehicleDraft, vehicleImages: File[], registrationDocument: File | null) {
+function validateStep(step: RegisterStep, draft: VehicleDraft, vehicleImages: File[]) {
   const errors: Record<string, string> = {};
   if (step === 1) {
     if (!draft.plateNumber.trim()) errors.plateNumber = "Vui lòng nhập biển số xe.";
@@ -116,8 +114,7 @@ function validateStep(step: RegisterStep, draft: VehicleDraft, vehicleImages: Fi
     }
   }
   if (step === 3) {
-    if (vehicleImages.length < 3) errors.vehicleImages = "Vui lòng tải lên ít nhất 3 ảnh xe.";
-    if (!registrationDocument) errors.registrationDocument = "Vui lòng tải lên ảnh giấy đăng ký xe.";
+    if (vehicleImages.length < 1) errors.vehicleImages = "Vui lòng chọn ít nhất 1 ảnh xe.";
   }
   return errors;
 }
@@ -127,7 +124,6 @@ export function OwnerRegisterPage() {
   const [draft, setDraft] = useState<VehicleDraft>(initialDraft);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [vehicleImages, setVehicleImages] = useState<File[]>([]);
-  const [registrationDocument, setRegistrationDocument] = useState<File | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -135,12 +131,10 @@ export function OwnerRegisterPage() {
   const reduceMotion = useReducedMotion();
 
   const vehicleImageUrls = useMemo(() => vehicleImages.map((file) => URL.createObjectURL(file)), [vehicleImages]);
-  const documentUrl = useMemo(() => registrationDocument ? URL.createObjectURL(registrationDocument) : null, [registrationDocument]);
 
   useEffect(() => () => {
     vehicleImageUrls.forEach((url) => URL.revokeObjectURL(url));
-    if (documentUrl) URL.revokeObjectURL(documentUrl);
-  }, [documentUrl, vehicleImageUrls]);
+  }, [vehicleImageUrls]);
 
   const setField = (field: keyof VehicleDraft, value: string) => {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -157,7 +151,7 @@ export function OwnerRegisterPage() {
   };
 
   const next = () => {
-    const nextErrors = validateStep(step, draft, vehicleImages, registrationDocument);
+    const nextErrors = validateStep(step, draft, vehicleImages);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
     setStep((current) => Math.min(3, current + 1) as RegisterStep);
@@ -166,7 +160,7 @@ export function OwnerRegisterPage() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const nextErrors = validateStep(3, draft, vehicleImages, registrationDocument);
+    const nextErrors = validateStep(3, draft, vehicleImages);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
     if (!session) {
@@ -174,7 +168,6 @@ export function OwnerRegisterPage() {
       return;
     }
 
-    if (!registrationDocument) return;
     try {
       setSubmitting(true);
       setSubmitError("");
@@ -198,7 +191,7 @@ export function OwnerRegisterPage() {
         overageFeePerKm: draft.mileageLimitEnabled ? Number(draft.overageFeePerKm) : null,
         rentalTerms: draft.rentalTerms.trim() || null,
         features: draft.features,
-      }, vehicleImages, registrationDocument);
+      }, vehicleImages);
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
     } catch (error) {
@@ -333,17 +326,12 @@ export function OwnerRegisterPage() {
                   <>
                     <div className="owner-form-section-heading"><ImageSquare size={25} weight="duotone" /><div><h2>Hình ảnh</h2><p>Đăng nhiều hình ở các góc độ khác nhau để tăng thông tin cho xe của bạn.</p></div></div>
                     <div className="owner-upload-section owner-vehicle-gallery">
-                      <div className="owner-gallery-meta"><div><h3>Ảnh xe *</h3><p>Tối thiểu 3 ảnh, tối đa 8 ảnh. Ảnh đầu tiên là ảnh đại diện.</p></div><strong>{vehicleImages.length}/8</strong></div>
+                      <div className="owner-gallery-meta"><p>Chọn từ 1 đến 8 ảnh. Ảnh đầu tiên là ảnh đại diện.</p><strong>{vehicleImages.length}/8</strong></div>
                       <div className="owner-image-preview-grid">
                         {vehicleImages.length < 8 ? <label className="owner-add-image-tile"><Camera size={34} weight="duotone" /><strong>CHỌN HÌNH</strong><span>JPG, PNG, WebP</span><input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={onVehicleImages} /></label> : null}
                         {vehicleImageUrls.map((url, index) => <figure key={url}><button className="owner-image-main-action" type="button" onClick={() => makeCover(index)} aria-label={`Đặt ảnh ${index + 1} làm ảnh đại diện`}><img src={url} alt={`Ảnh xe ${index + 1}`} /></button>{index === 0 ? <span>Ảnh đại diện</span> : null}<button className="owner-image-delete" type="button" aria-label={`Xóa ảnh ${index + 1}`} onClick={() => setVehicleImages((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Trash /></button></figure>)}
                       </div>
                       <FieldError>{errors.vehicleImages}</FieldError>
-                    </div>
-                    <div className="owner-upload-section owner-document-section">
-                      <div className="owner-upload-heading"><div><h3>Giấy đăng ký xe *</h3><p>Ảnh này được lưu riêng để xác minh và không hiển thị công khai.</p></div></div>
-                      {documentUrl ? <div className="owner-document-preview"><img src={documentUrl} alt="Ảnh giấy đăng ký xe" /><div><FileText size={24} /><span>{registrationDocument?.name}</span></div><button type="button" onClick={() => setRegistrationDocument(null)} aria-label="Xóa giấy đăng ký xe"><Trash /></button></div> : <label className="owner-document-picker"><UploadSimple size={28} /><strong>Chọn ảnh giấy đăng ký xe</strong><span>JPG, PNG hoặc WebP</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { setRegistrationDocument(event.target.files?.[0] || null); setErrors((current) => ({ ...current, registrationDocument: "" })); }} /></label>}
-                      <FieldError>{errors.registrationDocument}</FieldError>
                     </div>
                     {submitError ? <div className="owner-submit-error" role="alert">{submitError}</div> : null}
                   </>

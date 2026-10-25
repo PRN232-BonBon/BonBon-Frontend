@@ -34,12 +34,10 @@ export async function registerVehicle(
   session: AuthSession,
   payload: VehicleRegistrationPayload,
   vehicleImages: File[],
-  registrationDocument: File,
 ) {
   const body = new FormData();
   body.append("metadata", JSON.stringify(payload));
   vehicleImages.forEach((image) => body.append("vehicleImages", image));
-  body.append("registrationDocument", registrationDocument);
 
   const response = await fetch(`${API_BASE_URL}/vehicles/registrations`, {
     method: "POST",
