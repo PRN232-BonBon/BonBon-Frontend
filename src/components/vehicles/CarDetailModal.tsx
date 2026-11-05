@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -22,6 +23,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { createBooking } from "../../booking/booking-api";
 import type { VehicleListing } from "../../data/demo-vehicles";
 import { formatRentalSummary, RentalTimeModal, type RentalSelection } from "../booking/RentalTimeModal";
+import { BookingConfirmationModal } from "../booking/BookingConfirmationModal";
 
 interface CarDetailModalProps {
   vehicle: VehicleListing;
@@ -38,11 +40,17 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const unitPrice = rentalWindow.rentalType === "Hourly" ? vehicle.hourPrice : vehicle.dayPrice;
-  const total = unitPrice * rentalWindow.billableUnits;
+  const baseAmount = unitPrice * rentalWindow.billableUnits;
+  const discountPercent = rentalWindow.rentalType === "Daily" && rentalWindow.billableUnits >= 7 && vehicle.weeklyDiscountEnabled
+    ? vehicle.weeklyDiscountPercent ?? 0 : 0;
+  const discountAmount = Math.round(baseAmount * discountPercent / 100);
+  const total = baseAmount - discountAmount;
   const rentalLabel = rentalWindow.rentalType === "Hourly" ? "giờ" : "ngày";
   const galleryLength = vehicle.imageUrls.length;
 
@@ -71,23 +79,27 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
         if (event.key === "ArrowRight") showNextImage();
         return;
       }
-      if (event.key === "Escape" && !isTimeOpen) onClose();
+      const activeDialog = event.target instanceof Element ? event.target.closest('[role="dialog"]') : null;
+      if (activeDialog && activeDialog.getAttribute("aria-labelledby") !== "car-detail-title") return;
+      if (event.key === "Escape" && !isTimeOpen && !isConfirmationOpen) onClose();
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", closeOnEscape);
     };
-  }, [galleryLength, isGalleryOpen, isTimeOpen, onClose]);
+  }, [galleryLength, isGalleryOpen, isTimeOpen, isConfirmationOpen, onClose]);
 
   const submitBooking = async () => {
+    if (submittingRef.current) return;
     setMessage(null);
     if (!session) {
-      onClose();
+      setIsConfirmationOpen(false);
       window.dispatchEvent(new CustomEvent("bonbon:open-auth", { detail: "login" }));
       return;
     }
 
+    submittingRef.current = true;
     setIsSubmitting(true);
     try {
       await createBooking(vehicle.id, {
@@ -97,14 +109,16 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
       }, session.accessToken);
       window.location.href = "/my-trips";
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Không thể tạo chuyến thuê xe.");
+      setMessage(error instanceof TypeError ? "Không thể kết nối đến BonBon. Vui lòng kiểm tra Chuyến của tôi trước khi thử lại."
+        : error instanceof Error ? error.message : "Không thể tạo chuyến thuê xe.");
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };
 
   return createPortal(
     <div className="car-detail-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <article className="car-detail-modal" role="dialog" aria-modal="true" aria-labelledby="car-detail-title">
+      <article className="car-detail-modal" role="dialog" aria-modal={!isConfirmationOpen && !isGalleryOpen && !isTimeOpen} inert={isConfirmationOpen || isGalleryOpen || isTimeOpen} aria-labelledby="car-detail-title">
         <header className="car-detail-header">
           <div>
             <span>Chi tiết xe</span>
@@ -174,7 +188,7 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
 
               <section className="car-owner-section">
                 <UserCircle size={54} weight="duotone" />
-                <div><span>Chủ xe</span><strong>BonBon Demo Fleet</strong><small><Star weight="fill" /> 5.0 · Phản hồi nhanh</small></div>
+                <div><span>Chủ xe</span><strong>{vehicle.owner?.fullName || "Chủ xe BonBon"}</strong><small>Nhận xe trực tiếp tại địa chỉ của chủ xe</small></div>
               </section>
             </div>
 
@@ -188,15 +202,22 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
               <div className="car-booking-summary">
                 <div><span>Đơn giá thuê</span><strong>{money.format(unitPrice)}đ/{rentalLabel}</strong></div>
                 <div><span>Thời lượng</span><strong>{rentalWindow.billableUnits} {rentalLabel}</strong></div>
+                {discountAmount > 0 ? <div><span>Giảm giá thuê tuần ({discountPercent}%)</span><strong>-{money.format(discountAmount)}đ</strong></div> : null}
                 <div className="car-booking-total"><span>Tổng cộng</span><strong>{money.format(total)}đ</strong></div>
               </div>
               {message ? <p className="car-booking-message" role="alert">{message}</p> : null}
-              <button className="car-booking-submit" type="button" disabled={isSubmitting} onClick={() => void submitBooking()}>{isSubmitting ? "Đang tạo chuyến..." : "Đặt xe"}</button>
+              <button className="car-booking-submit" type="button" onClick={() => { setMessage(null); setIsConfirmationOpen(true); }}>Chọn thuê</button>
               <small>Bạn chưa bị tính phí ở bước này.</small>
             </aside>
           </div>
         </div>
       </article>
+
+      <AnimatePresence>
+        {isConfirmationOpen ? <BookingConfirmationModal key="booking-confirmation" vehicle={vehicle} rentalWindow={rentalWindow}
+          isSubmitting={isSubmitting} isAuthenticated={Boolean(session)} submissionError={message}
+          onClose={() => { if (!submittingRef.current) setIsConfirmationOpen(false); }} onSubmit={submitBooking} /> : null}
+      </AnimatePresence>
 
       {isGalleryOpen ? (
         <div className="car-photo-viewer" role="dialog" aria-modal="true" aria-label={`Thư viện ảnh ${vehicle.brand} ${vehicle.model}`} onMouseDown={(event) => { if (event.target === event.currentTarget) setIsGalleryOpen(false); }}>

@@ -11,6 +11,7 @@ import { FavoritesPage } from "./components/portal/FavoritesPage";
 import { TripsPage } from "./components/portal/TripsPage";
 import { AddressesPage } from "./components/portal/AddressesPage";
 import { ChangePasswordPage } from "./components/portal/ChangePasswordPage";
+import { PaymentResultPage } from "./components/portal/PaymentResultPage";
 import { VehicleListPage } from "./components/vehicles/VehicleListPage";
 import { OwnerLandingPage } from "./components/owner/OwnerLandingPage";
 import { OwnerRegisterPage } from "./components/owner/OwnerRegisterPage";
@@ -23,6 +24,7 @@ const portalPages: Record<string, ComponentType> = {
   "/my-trips": TripsPage,
   "/my-addresses": AddressesPage,
   "/change-password": ChangePasswordPage,
+  "/payment/result": PaymentResultPage,
 };
 
 export default function App() {
