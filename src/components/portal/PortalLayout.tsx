@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Car, Heart, LockKey, MapPin, SignOut, UserCircle } from "@phosphor-icons/react";
+import { Car, Heart, LockKey, MapPin, MapTrifold, SignOut, UserCircle } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
 
 const nav = [
@@ -7,6 +7,7 @@ const nav = [
   { href: "/my-favorites", label: "Xe yêu thích", icon: Heart },
   { href: "/my-trips", label: "Chuyến của tôi", icon: Car },
   { href: "/my-addresses", label: "Địa chỉ của tôi", icon: MapPin },
+  { href: "/owner/tracking", label: "Theo dõi chuyến cho thuê", icon: MapTrifold },
   { href: "/change-password", label: "Đổi mật khẩu", icon: LockKey },
 ];
 

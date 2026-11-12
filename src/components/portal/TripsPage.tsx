@@ -7,6 +7,7 @@ import { formatBookingDate, formatBookingMoney as money } from "../../booking/bo
 import { paymentErrorMessage } from "../../payment/payment-api";
 import { OrderDetailModal } from "../booking/OrderDetailModal";
 import { PaymentModal } from "../booking/PaymentModal";
+import { ShareLocationControl } from "../tracking/ShareLocationControl";
 import { EmptyState } from "./EmptyState";
 import "./trips.css";
 
@@ -61,7 +62,8 @@ export function TripsPage() {
             {item.status === "PendingApproval" ? <p className="trip-waiting-hint">Thanh toán sẽ được mở khi chủ xe xác nhận.</p> : null}
           </div>
           <div className="trip-actions"><strong className="trip-price">{money(item.totalAmount)}</strong>
-            {!historyStatuses.has(item.status) ? <button className="trip-pay" type="button" disabled={!canPayBooking(item)} title={item.status === "PendingApproval" ? "Chờ chủ xe xác nhận yêu cầu" : undefined}
+            {item.status === "InProgress" && session ? <ShareLocationControl bookingId={item.bookingId} session={session} /> : null}
+            {!historyStatuses.has(item.status) && item.status !== "InProgress" ? <button className="trip-pay" type="button" disabled={!canPayBooking(item)} title={item.status === "PendingApproval" ? "Chờ chủ xe xác nhận yêu cầu" : undefined}
               onClick={event => { event.stopPropagation(); if (canPayBooking(item)) setView({ kind: "payment", bookingId: item.bookingId }); }}><CreditCard size={18} />{isPaidBooking(item.status) ? "Đã thanh toán" : "Thanh toán"}</button> : null}
             <button className="trip-view-detail" type="button" onClick={event => { event.stopPropagation(); setView({ kind: "detail", bookingId: item.bookingId }); }}>Xem chi tiết<CaretRight size={15} /></button>
           </div>
