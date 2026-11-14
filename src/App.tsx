@@ -16,6 +16,7 @@ import { VehicleListPage } from "./components/vehicles/VehicleListPage";
 import { OwnerLandingPage } from "./components/owner/OwnerLandingPage";
 import { OwnerRegisterPage } from "./components/owner/OwnerRegisterPage";
 import { OwnerBookingsPage } from "./components/owner/OwnerBookingsPage";
+import { OwnerTrackingPage } from "./components/owner/OwnerTrackingPage";
 import { useAuth } from "./auth/AuthContext";
 import type { ComponentType } from "react";
 
@@ -27,6 +28,7 @@ const portalPages: Record<string, ComponentType> = {
   "/change-password": ChangePasswordPage,
   "/payment/result": PaymentResultPage,
   "/owner/bookings": OwnerBookingsPage,
+  "/owner/tracking": OwnerTrackingPage,
 };
 
 export default function App() {

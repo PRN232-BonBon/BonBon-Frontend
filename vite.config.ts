@@ -10,6 +10,12 @@ export default defineConfig({
         target: "http://localhost:5188",
         changeOrigin: true,
       },
+      // SignalR hub của backend tracking: cần ws: true để WebSocket đi qua Vite.
+      "/hubs": {
+        target: "http://localhost:5188",
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 });
