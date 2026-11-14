@@ -1,5 +1,16 @@
 import type { ReactNode } from "react";
-import { Car, Heart, LockKey, MapPin, MapTrifold, SignOut, UserCircle } from "@phosphor-icons/react";
+// import { Car, Heart, LockKey, MapPin, SignOut, UserCircle, ClipboardText } from "@phosphor-icons/react";
+// import { Car, Heart, LockKey, MapPin, MapTrifold, SignOut, UserCircle } from "@phosphor-icons/react";
+import {
+  Car,
+  Heart,
+  LockKey,
+  MapPin,
+  MapTrifold,
+  SignOut,
+  UserCircle,
+  ClipboardText,
+} from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
 
 const nav = [
@@ -28,6 +39,10 @@ export function PortalLayout({ path, children }: { path: string; children: React
                 {label}
               </a>
             ))}
+            {session?.account.roles.includes("VehicleOwner") ? <a href="/owner/bookings" className={path === "/owner/bookings" ? "active" : ""}>
+              <ClipboardText size={22} weight={path === "/owner/bookings" ? "fill" : "regular"} />
+              Yêu cầu thuê xe
+            </a> : null}
             <button type="button" onClick={() => void logout().then(() => { window.location.href = "/"; })}>
               <SignOut size={22} /> Đăng xuất
             </button>
