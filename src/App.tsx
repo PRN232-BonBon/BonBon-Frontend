@@ -15,6 +15,7 @@ import { PaymentResultPage } from "./components/portal/PaymentResultPage";
 import { VehicleListPage } from "./components/vehicles/VehicleListPage";
 import { OwnerLandingPage } from "./components/owner/OwnerLandingPage";
 import { OwnerRegisterPage } from "./components/owner/OwnerRegisterPage";
+import { OwnerBookingsPage } from "./components/owner/OwnerBookingsPage";
 import { useAuth } from "./auth/AuthContext";
 import type { ComponentType } from "react";
 
@@ -25,6 +26,7 @@ const portalPages: Record<string, ComponentType> = {
   "/my-addresses": AddressesPage,
   "/change-password": ChangePasswordPage,
   "/payment/result": PaymentResultPage,
+  "/owner/bookings": OwnerBookingsPage,
 };
 
 export default function App() {
