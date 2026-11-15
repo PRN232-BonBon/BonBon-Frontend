@@ -108,6 +108,28 @@ img {
 
 .portal-greeting span { color: #777; font-size: .84rem; }
 .portal-greeting strong { overflow: hidden; font-size: 1.03rem; text-overflow: ellipsis; white-space: nowrap; }
+.portal-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 0 12px 4px;
+  border: 1px solid #e8e7e1;
+  border-radius: 10px;
+  padding: 4px;
+  background: #f7f7f4;
+}
+.portal-mode-switch button {
+  min-height: 35px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #65645f;
+  cursor: pointer;
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 700;
+}
+.portal-mode-switch button.active { background: #fff1bd; color: #171613; box-shadow: 0 1px 3px rgb(0 0 0 / 8%); }
 .portal-sidebar nav { padding: 10px; }
 .portal-sidebar nav a,
 .portal-sidebar nav button {
