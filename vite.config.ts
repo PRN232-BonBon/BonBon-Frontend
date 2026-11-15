@@ -4,6 +4,8 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Only vite.payment-local.config.ts may enable the desktop IPN tool.
+  define: { "import.meta.env.VITE_LOCAL_IPN_SIMULATION": JSON.stringify("false") },
   server: {
     proxy: {
       "/api": {

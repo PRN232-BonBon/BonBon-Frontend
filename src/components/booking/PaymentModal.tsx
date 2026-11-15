@@ -9,9 +9,12 @@ import { createPayment, paymentErrorMessage, safeCheckoutUrl, verifiedPaymentSuc
 import { usePaymentStatus } from "../../payment/usePaymentStatus";
 import { BookingModalShell } from "./BookingModalShell";
 import "./payment.css";
+import { LocalIpnSimulation } from "../../payment/LocalIpnSimulation";
 
 export function PaymentModal({ bookingId, onClose, onPaid }: { bookingId: string; onClose: () => void; onPaid: () => void }) {
   const { session } = useAuth();
+  const localSimulation = import.meta.env.DEV && import.meta.env.VITE_LOCAL_IPN_SIMULATION === "true"
+    && ["127.0.0.1", "localhost"].includes(window.location.hostname);
   const [checkout, setCheckout] = useState<PaymentCheckout | null>(null);
   const [error, setError] = useState(""); const [attempt, setAttempt] = useState(0);
   const [loading, setLoading] = useState(true); const [now, setNow] = useState(Date.now());
@@ -74,7 +77,8 @@ export function PaymentModal({ bookingId, onClose, onPaid }: { bookingId: string
           </> : <div className="booking-confirmation-loading" role="status"><SpinnerGap className="booking-confirmation-spinner" size={23} />Đang kiểm tra kết quả với hệ thống…</div>}
         {statusError ? <p className="booking-confirmation-error" role="alert">{statusError}</p> : null}
         {!paid ? <button className="payment-check-status" type="button" disabled={checking} onClick={refresh}>{checking ? "Đang kiểm tra…" : "Tôi đã thanh toán · Kiểm tra trạng thái"}</button> : null}
-        <p className="payment-security-note"><ShieldCheck size={17} />Chuyến đi sẽ được xác nhận sau khi BonBon nhận được kết quả giao dịch.</p>
+        {localSimulation && session ? <LocalIpnSimulation paymentId={checkout.paymentId} session={session} onCheck={refresh} /> : null}
+        <p className="payment-security-note"><ShieldCheck size={17} />{localSimulation ? "GIẢ LẬP IPN LOCAL — không phải kết quả từ VNPay." : "Chuyến đi sẽ được xác nhận sau khi BonBon nhận được kết quả giao dịch."}</p>
       </> : null}
       <button className="payment-close" type="button" onClick={onClose}>{paid ? "Về chuyến của tôi" : "Đóng"}</button>
     </div>

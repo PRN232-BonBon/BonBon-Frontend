@@ -5,7 +5,14 @@ import { createPayment, getPaymentStatus, safeCheckoutUrl, verifiedPaymentSuccee
 import { getBookingDetail } from "../src/portal/portal-api.ts";
 
 const future = "2099-01-01T00:00:00Z";
-const session = id => ({ accessToken: "test-token", account: { accountId: id } });
+const session = id => ({ accessToken: "test-token", account: { accountId: id, roles: ["Customer"] } });
+const bookingId="20000000-0000-0000-0000-000000000001", retryBookingId="20000000-0000-0000-0000-000000000002";
+const receiptId="30000000-0000-0000-0000-000000000001";
+const payment=(booking=bookingId)=>({paymentId:receiptId,bookingId:booking,amount:1300000,currency:"VND",status:"Pending",checkoutUrl:null,expiresAt:future,isReplay:false,requiresReconciliation:false});
+const storage=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,String(v)),clear:()=>map.clear()}};
+Object.defineProperty(globalThis,"localStorage",{value:storage(),configurable:true});
+Object.defineProperty(globalThis,"sessionStorage",{value:storage(),configurable:true});
+test.beforeEach(()=>{localStorage.clear();sessionStorage.clear()});
 for (const status of ["PendingApproval", "Confirmed", "ReadyForPickup", "InProgress", "Returned", "Completed", "Cancelled", "Rejected", "unknown"]) {
   test(`${status} never enables a new payment`, () => assert.equal(canPayBooking({ status, startAt: future }), false));
 }
@@ -35,13 +42,13 @@ test("concurrent checkout opens issue only one POST with no client amount or sta
   let calls = 0;
   context.mock.method(globalThis, "fetch", async (url, init) => {
     calls++; assert.equal(url, "/api/payments");
-    assert.deepEqual(JSON.parse(init.body), { bookingId: "order-concurrent" });
+    assert.deepEqual(JSON.parse(init.body), { bookingId });
     assert.equal(init.headers.Authorization, "Bearer test-token");
     assert.match(init.headers["Idempotency-Key"], /^[a-f\d-]{36}$/);
-    return Response.json({ paymentId: "receipt-1" });
+    return Response.json(payment());
   });
   const account = session("account-concurrent");
-  await Promise.all([createPayment("order-concurrent", account), createPayment("order-concurrent", account)]);
+  await Promise.all([createPayment(bookingId, account), createPayment(bookingId, account)]);
   assert.equal(calls, 1);
 });
 test("uncertain network retry preserves the original idempotency key", async context => {
@@ -49,21 +56,21 @@ test("uncertain network retry preserves the original idempotency key", async con
   context.mock.method(globalThis, "fetch", async (_, init) => {
     keys.push(init.headers["Idempotency-Key"]);
     if (keys.length === 1) throw new TypeError("network failed after sending");
-    return Response.json({ paymentId: "receipt-replayed" });
+    return Response.json(payment(retryBookingId));
   });
   const account = session("account-retry");
-  await assert.rejects(createPayment("order-retry", account));
-  await createPayment("order-retry", account);
+  await assert.rejects(createPayment(retryBookingId, account));
+  await createPayment(retryBookingId, account);
   assert.equal(keys.length, 2); assert.equal(keys[0], keys[1]);
 });
 test("payment status is authenticated and read-only", async context => {
   context.mock.method(globalThis, "fetch", async (url, init) => {
-    assert.equal(url, "/api/payments/receipt-1");
+    assert.equal(url, `/api/payments/${receiptId}`);
     assert.equal(init.method, undefined); assert.equal(init.body, undefined);
     assert.equal(init.headers.Authorization, "Bearer test-token");
-    return Response.json({ paymentId: "receipt-1", status: "Pending", requiresReconciliation: false });
+    return Response.json(payment());
   });
-  assert.equal((await getPaymentStatus("receipt-1", session("account-status"))).status, "Pending");
+  assert.equal((await getPaymentStatus(receiptId, session("account-status"))).status, "Pending");
 });
 test("order details load the saved snapshot, not a new quote", async context => {
   context.mock.method(globalThis, "fetch", async (url, init) => {

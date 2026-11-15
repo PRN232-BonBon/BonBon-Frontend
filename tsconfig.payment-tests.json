@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": { "types": ["node", "vitest/globals", "vite/client"], "allowImportingTsExtensions": true },
+  "include": ["tests/payment/**/*.ts", "tests/payment/**/*.tsx", "vite.payment-sandbox.config.ts", "vite.payment-local.config.ts", "vitest.config.ts"]
+}

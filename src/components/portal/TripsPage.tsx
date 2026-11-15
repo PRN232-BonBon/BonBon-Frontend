@@ -18,10 +18,12 @@ export function TripsPage() {
   const { session } = useAuth();
   const [tab, setTab] = useState<"current" | "history">("current");
   const [items, setItems] = useState<CustomerBooking[]>([]);
+  const [itemsOwner, setItemsOwner] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [view, setView] = useState<View>(null);
+  useEffect(() => setView(null), [session?.account.accountId]);
   const request = useRef<AbortController | null>(null);
 
   const load = useCallback(async () => {
@@ -31,7 +33,7 @@ export function TripsPage() {
     setRefreshing(true);
     try {
       const bookings = await getMyBookings(session, controller.signal);
-      if (!controller.signal.aborted) { setItems(bookings); setError(""); }
+      if (!controller.signal.aborted) { setItems(bookings); setItemsOwner(session.account.accountId); setError(""); }
     } catch (reason) { if (!controller.signal.aborted) setError(paymentErrorMessage(reason)); }
     finally { if (!controller.signal.aborted) { setLoading(false); setRefreshing(false); } }
   }, [session]);
@@ -45,7 +47,8 @@ export function TripsPage() {
   }, [load]);
   const onPaid = useCallback(() => { void load(); }, [load]);
 
-  const visible = items.filter((item) => tab === "history" ? historyStatuses.has(item.status) : !historyStatuses.has(item.status));
+  const ownsItems = itemsOwner === session?.account.accountId;
+  const visible = ownsItems ? items.filter((item) => tab === "history" ? historyStatuses.has(item.status) : !historyStatuses.has(item.status)) : [];
   return <>
     <div className="portal-title-row"><h1>Chuyến của tôi</h1><button className="trip-refresh" type="button" disabled={refreshing} onClick={() => void load()}><ArrowClockwise size={18} />{refreshing ? "Đang cập nhật…" : "Cập nhật"}</button></div>
     <div className="portal-tabs"><button className={tab === "current" ? "active" : ""} onClick={() => setTab("current")} type="button">Chuyến hiện tại</button><button className={tab === "history" ? "active" : ""} onClick={() => setTab("history")} type="button">Lịch sử chuyến</button></div>
@@ -69,7 +72,7 @@ export function TripsPage() {
           </div>
         </article>)}</div>}
     </article>
-    {view?.kind === "detail" ? <OrderDetailModal bookingId={view.bookingId} onClose={() => setView(null)} onPayment={() => setView({ kind: "payment", bookingId: view.bookingId })} /> : null}
-    {view?.kind === "payment" ? <PaymentModal bookingId={view.bookingId} onClose={() => setView(null)} onPaid={onPaid} /> : null}
+    {ownsItems && view?.kind === "detail" ? <OrderDetailModal bookingId={view.bookingId} onClose={() => setView(null)} onPayment={() => setView({ kind: "payment", bookingId: view.bookingId })} /> : null}
+    {ownsItems && view?.kind === "payment" ? <PaymentModal bookingId={view.bookingId} onClose={() => setView(null)} onPaid={onPaid} /> : null}
   </>;
 }
