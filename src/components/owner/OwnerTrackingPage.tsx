@@ -4,11 +4,8 @@ import { useAuth } from "../../auth/AuthContext";
 import { bookingStatusLabel } from "../../booking/booking-status";
 import { formatBookingDate, formatBookingMoney } from "../../booking/booking-display";
 import { resolveBookingImage } from "../../portal/portal-api";
-import {
-  getOwnerBookings,
-  trackingErrorMessage,
-  type OwnerBooking,
-} from "../../tracking/tracking-api";
+import { getOwnerBookings, type OwnerBooking } from "../../owner/owner-api";
+import { trackingErrorMessage } from "../../tracking/tracking-api";
 import { isMeetingPointsConfigurable } from "../../tracking/tracking-display";
 import { EmptyState } from "../portal/EmptyState";
 import { OwnerTrackingView } from "../tracking/OwnerTrackingView";

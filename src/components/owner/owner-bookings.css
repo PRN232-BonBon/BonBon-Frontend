@@ -32,3 +32,4 @@
   .owner-booking-decision { display: flex; width: auto; }
   .owner-booking-decision button { min-width: 98px; }
 }
+.owner-booking-item.is-selected { outline: 2px solid #dca600; outline-offset: 5px; border-radius: 8px; scroll-margin-block: 100px; }

@@ -8,6 +8,8 @@ import {
   SignOut,
   UserCircle,
   ClipboardText,
+  CarProfile,
+  CalendarBlank,
 } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
 
@@ -61,8 +63,8 @@ export function PortalLayout({ path, children }: { path: string; children: React
           ) : null}
           <nav aria-label={activeMode === "owner" ? "Khu vực chủ xe" : "Khu vực người thuê"}>
             {nav.map(({ href, label, icon: Icon }) => (
-              <a key={href} href={href} className={path === href ? "active" : ""}>
-                <Icon size={22} weight={path === href ? "fill" : "regular"} />
+              <a key={href} href={href} className={path === href || (path === "/owner/gps" && href === "/owner/tracking") ? "active" : ""}>
+                <Icon size={22} weight={path === href || (path === "/owner/gps" && href === "/owner/tracking") ? "fill" : "regular"} />
                 {label}
               </a>
             ))}

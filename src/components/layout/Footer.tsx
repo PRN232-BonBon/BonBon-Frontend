@@ -15,18 +15,18 @@ export function Footer() {
 
         <div>
           <h3>Khám phá</h3>
-          <a href="#top">Thuê xe</a>
-          <a href="#dia-diem">Địa điểm</a>
-          <a href="#huong-dan">Hướng dẫn thuê xe</a>
+          <a href="/#top">Thuê xe</a>
+          <a href="/#dia-diem">Địa điểm</a>
+          <a href="/#huong-dan">Hướng dẫn thuê xe</a>
         </div>
         <div>
           <h3>Dành cho chủ xe</h3>
-          <a href="#dich-vu">Đăng xe trên BonBon</a>
-          <a href="#uu-diem">Quy trình vận hành</a>
+          <a href="/become-owner">Đăng xe trên BonBon</a>
+          <a href="/#uu-diem">Quy trình vận hành</a>
         </div>
         <div>
           <h3>Hỗ trợ</h3>
-          <a href="#huong-dan">Câu hỏi thường gặp</a>
+          <a href="/#huong-dan">Câu hỏi thường gặp</a>
           <a href="#top">Điều khoản sử dụng</a>
           <a href="#top">Chính sách bảo mật</a>
         </div>
