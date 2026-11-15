@@ -21,7 +21,7 @@ export function ServicesSection() {
             <img src="/assets/services/become-owner-clean.webp" alt="Chủ xe đồng hành cùng BonBon" loading="lazy" />
             <div className="service-content service-content-right">
               <h3>Đưa chiếc xe của bạn đến gần người thuê hơn</h3>
-              <p>Quản lý lịch xe, duyệt yêu cầu thuê và theo dõi chuyến đi trên một nền tảng.</p>
+              <p>Quản lý lịch xe và theo dõi chuyến đi trên một nền tảng.</p>
               <a className="button button-primary" href="#top">Đăng xe <ArrowRight size={18} /></a>
             </div>
           </Reveal>

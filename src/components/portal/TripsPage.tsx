@@ -62,11 +62,11 @@ export function TripsPage() {
           </button>
           <div className="trip-main"><div className="trip-top"><h3><button type="button" onClick={() => setView({ kind: "detail", bookingId: item.bookingId })}>{item.vehicleName}</button></h3><span className={`booking-status status-${item.status.toLowerCase()}`}>{bookingStatusLabel(item.status)}</span></div>
             <p className="plate">{item.plateNumber}</p><p><CalendarBlank size={17} />{formatBookingDate(item.startAt)}</p><p className="trip-end">đến {formatBookingDate(item.endAt)}</p><p><MapPin size={17} />Nhận xe tại địa chỉ của chủ xe</p>
-            {item.status === "PendingApproval" ? <p className="trip-waiting-hint">Thanh toán sẽ được mở khi chủ xe xác nhận.</p> : null}
+            {item.status === "PendingApproval" ? <p className="trip-waiting-hint">Đơn đặt cũ đang chờ xử lý. Vui lòng liên hệ BonBon để được hỗ trợ.</p> : null}
           </div>
           <div className="trip-actions"><strong className="trip-price">{money(item.totalAmount)}</strong>
             {item.status === "InProgress" && session ? <ShareLocationControl bookingId={item.bookingId} session={session} /> : null}
-            {!historyStatuses.has(item.status) && item.status !== "InProgress" ? <button className="trip-pay" type="button" disabled={!canPayBooking(item)} title={item.status === "PendingApproval" ? "Chờ chủ xe xác nhận yêu cầu" : undefined}
+            {!historyStatuses.has(item.status) && item.status !== "InProgress" ? <button className="trip-pay" type="button" disabled={!canPayBooking(item)} title={item.status === "PendingApproval" ? "Đơn đặt cũ đang chờ xử lý" : undefined}
               onClick={event => { event.stopPropagation(); if (canPayBooking(item)) setView({ kind: "payment", bookingId: item.bookingId }); }}><CreditCard size={18} />{isPaidBooking(item.status) ? "Đã thanh toán" : "Thanh toán"}</button> : null}
             <button className="trip-view-detail" type="button" onClick={event => { event.stopPropagation(); setView({ kind: "detail", bookingId: item.bookingId }); }}>Xem chi tiết<CaretRight size={15} /></button>
           </div>

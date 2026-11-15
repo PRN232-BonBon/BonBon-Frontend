@@ -55,7 +55,7 @@ export function OrderDetailModal({ bookingId, onClose, onPayment }: { bookingId:
         <div className="booking-confirmation-total"><dt>Thành tiền</dt><dd>{money(detail.quotedRentalAmount)}</dd></div>
       </dl><p className="booking-confirmation-muted order-price-note">Giá và điều khoản đã lưu lúc đặt xe, không tính lại theo giá xe hiện tại.</p></section>
       <footer className="booking-confirmation-actions"><button type="button" className="booking-confirmation-cancel" onClick={onClose}>Đóng</button><button type="button" className="booking-confirmation-submit" disabled={!canPayBooking(detail)} onClick={onPayment}>{isPaidBooking(detail.status) ? "Đã thanh toán" : "Thanh toán"}</button></footer>
-      {detail.status === "PendingApproval" ? <p className="order-payment-hint">Nút Thanh toán sẽ được mở khi chủ xe xác nhận yêu cầu.</p> : null}
+      {detail.status === "PendingApproval" ? <p className="order-payment-hint">Đơn đặt cũ đang chờ xử lý. Vui lòng liên hệ BonBon để được hỗ trợ.</p> : null}
     </> : null}
   </BookingModalShell>;
 }
