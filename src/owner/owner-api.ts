@@ -30,6 +30,15 @@ export interface VehicleRegistrationResult {
   imageCount: number;
 }
 
+export interface RejectedRegistration extends VehicleRegistrationPayload {
+  vehicleId: string; rejectionReason: string | null; imageUrls: string[];
+}
+
+export async function getRejectedRegistration(session: AuthSession, vehicleId: string) {
+  const item = await bookingRequest<RejectedRegistration>(session, `/vehicles/registrations/${encodeURIComponent(vehicleId)}/rejected`);
+  return { ...item, imageUrls: item.imageUrls.map(url => ownerImageUrl(url) ?? url) };
+}
+
 export interface OwnerVehicle {
   vehicleId: string; brand: string; model: string; plateNumber: string; status: string;
   rejectionReason: string | null; imageCount: number; productionYear: number | null;
@@ -122,12 +131,14 @@ export async function registerVehicle(
   session: AuthSession,
   payload: VehicleRegistrationPayload,
   vehicleImages: File[],
+  rejectedVehicleId?: string,
 ) {
   const body = new FormData();
   body.append("metadata", JSON.stringify(payload));
   vehicleImages.forEach((image) => body.append("vehicleImages", image));
 
-  const response = await fetch(`${API_BASE_URL}/vehicles/registrations`, {
+  const path = rejectedVehicleId ? `/vehicles/registrations/${encodeURIComponent(rejectedVehicleId)}/resubmit` : "/vehicles/registrations";
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${session.accessToken}` },
     body,

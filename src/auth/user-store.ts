@@ -13,6 +13,7 @@ const NAMESPACE_PREFIX = "bonbon.user.";
 
 /** Khoá lưu trữ đang gắn với tài khoản hiện tại (RAM, không persist). */
 let activeAccountId: string | null = null;
+let accountRevision = 0;
 
 /** Dữ liệu đã nạp cho tài khoản hiện tại, dùng để đồng bộ giữa các màn hình. */
 const listeners = new Set<() => void>();
@@ -28,6 +29,7 @@ function accountPrefix(accountId: string) {
 export function setActiveAccount(accountId: string | null) {
   if (activeAccountId === accountId) return;
   activeAccountId = accountId;
+  accountRevision += 1;
   notify();
 }
 
@@ -64,6 +66,17 @@ export function writeUserValue<T>(name: string, value: T) {
     // localStorage đầy hoặc bị chặn — bỏ qua, dữ liệu demo không chặn luồng chính.
   }
   notify();
+}
+
+/** Bind an asynchronous write to the account that started it, including logout/login. */
+export function captureUserWriter<T>(name: string) {
+  const accountId = activeAccountId;
+  const revision = accountRevision;
+  return (value: T) => {
+    if (!accountId || activeAccountId !== accountId || accountRevision !== revision) return false;
+    writeUserValue(name, value);
+    return true;
+  };
 }
 
 /** Xoá một giá trị của tài khoản hiện tại. */

@@ -43,7 +43,7 @@ function OwnerCars({ vehicles, bookings, loading, error }: { vehicles: OwnerVehi
         {car.coverImageUrl ? <img className="op-vehicle-cover" src={car.coverImageUrl} alt={`${car.brand} ${car.model}`} loading="lazy" /> : <div className="op-cover-empty"><CarProfile size={50} /></div>}
         <div className="op-vehicle-info"><h2>{car.brand} {car.model} {car.productionYear}</h2><span className="op-plate">{car.plateNumber}</span><span className={`op-vehicle-status op-status-${car.status.toLowerCase()}`}>{ownerVehicleStatus(car.status)}</span><p>{car.transmission === "Automatic" ? "Số tự động" : "Số sàn"} · {car.seats} chỗ · {car.imageCount} ảnh</p><p className="op-pickup"><MapPin size={16} />{car.pickupAddress}</p>
           {car.status === "Rejected" && car.rejectionReason ? <p className="op-rejection">Lý do từ chối: {car.rejectionReason}</p> : null}{pending ? <a className="op-pending-count" href="/owner/bookings">{pending} yêu cầu thuê đang chờ duyệt<ArrowRight size={16} /></a> : null}</div>
-        <div className="op-vehicle-actions"><strong>{money(car.dayPrice)}<small>/ngày</small></strong><span>{money(car.hourPrice)}/giờ</span><a className="op-secondary" href={`/owner/calendar?vehicle=${car.vehicleId}`}><CalendarBlank size={18} />Xem lịch xe</a></div>
+        <div className="op-vehicle-actions"><strong>{money(car.dayPrice)}<small>/ngày</small></strong><span>{money(car.hourPrice)}/giờ</span>{car.status === "Rejected" ? <a className="op-secondary" href={`/owner/register?edit=${encodeURIComponent(car.vehicleId)}`}>Sửa và gửi lại</a> : <a className="op-secondary" href={`/owner/calendar?vehicle=${car.vehicleId}`}><CalendarBlank size={18} />Xem lịch xe</a>}</div>
       </article>;
     })}</div>}
   </>;

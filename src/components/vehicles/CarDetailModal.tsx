@@ -22,6 +22,7 @@ import {
 import { useAuth } from "../../auth/AuthContext";
 import { createBooking } from "../../booking/booking-api";
 import type { VehicleListing } from "../../data/demo-vehicles";
+import { fuelLabel } from "../../vehicles/fuel-label";
 import { formatRentalSummary, RentalTimeModal, type RentalSelection } from "../booking/RentalTimeModal";
 import { BookingConfirmationModal } from "../booking/BookingConfirmationModal";
 
@@ -65,7 +66,7 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
   const specificationItems = useMemo(() => [
     { icon: SteeringWheel, label: "Truyền động", value: vehicle.transmission === "Automatic" ? "Số tự động" : "Số sàn" },
     { icon: Seat, label: "Số ghế", value: `${vehicle.seats} chỗ` },
-    { icon: GasPump, label: "Nhiên liệu", value: vehicle.fuel === "Electric" ? "Điện" : "Xăng" },
+    { icon: GasPump, label: "Nhiên liệu", value: fuelLabel(vehicle.fuel) },
     { icon: CarProfile, label: "Dòng xe", value: vehicle.bodyType },
   ], [vehicle]);
 

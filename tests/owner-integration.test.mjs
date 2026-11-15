@@ -13,10 +13,11 @@ test("legacy GPS route and remote tracking route use the same remote view", asyn
   assert.doesNotMatch(app, /interface-mode|<<<<<<<|>>>>>>>/);
 });
 
-test("remote sidebar exposes retained local views without a second mode switch", async () => {
+test("approved sidebar keeps the owner switch and account page links to vehicle registrations", async () => {
   const nav = await source("components/portal/PortalLayout.tsx");
-  for (const path of ["/owner/cars", "/owner/calendar", "/owner/tracking", "/owner/bookings"]) assert.ok(nav.includes(`href: "${path}"`) || nav.includes(`href="${path}"`));
-  assert.doesNotMatch(await source("components/portal/AccountPage.tsx"), /account-interface-switch|interface-mode/);
+  for (const path of ["/owner/tracking", "/owner/bookings"]) assert.ok(nav.includes(`href: "${path}"`));
+  assert.match(nav, /portal-mode-switch/);
+  assert.match(await source("components/portal/AccountPage.tsx"), /href="\/owner\/cars"/);
 });
 
 test("calendar links to remote approval and tracking has no duplicate booking API", async () => {

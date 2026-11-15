@@ -20,7 +20,7 @@ import {
   Usb,
 } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
-import { registerVehicle } from "../../owner/owner-api";
+import { getRejectedRegistration, registerVehicle } from "../../owner/owner-api";
 
 type RegisterStep = 1 | 2 | 3;
 
@@ -80,7 +80,8 @@ const amenities = [
   { label: "Túi khí an toàn", icon: ShieldCheck },
 ];
 const brands = ["Toyota", "Hyundai", "Kia", "Mazda", "Mitsubishi", "Honda", "Ford", "VinFast", "Mercedes-Benz", "Khác"];
-const years = Array.from({ length: 17 }, (_, index) => String(new Date().getFullYear() - index));
+const currentYear = Number(new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date()));
+const years = Array.from({ length: currentYear - 1989 }, (_, index) => String(currentYear - index));
 
 function FieldError({ children }: { children?: string }) {
   return children ? <small className="owner-field-error">{children}</small> : null;
@@ -91,18 +92,19 @@ function rangeStyle(value: string, min: number, max: number, enabled: boolean): 
   return { "--owner-range-progress": `${Math.min(100, Math.max(0, progress))}%` } as CSSProperties;
 }
 
-function validateStep(step: RegisterStep, draft: VehicleDraft, vehicleImages: File[]) {
+function validateStep(step: RegisterStep, draft: VehicleDraft, vehicleImages: File[], existingImages = 0) {
   const errors: Record<string, string> = {};
   if (step === 1) {
-    if (!draft.plateNumber.trim()) errors.plateNumber = "Vui lòng nhập biển số xe.";
-    if (!draft.brand) errors.brand = "Vui lòng chọn hãng xe.";
-    if (!draft.model.trim()) errors.model = "Vui lòng nhập mẫu xe.";
-    if (draft.description.trim().length < 20) errors.description = "Mô tả tối thiểu 20 ký tự.";
+    if (!draft.plateNumber.trim() || draft.plateNumber.trim().length > 30) errors.plateNumber = "Biển số xe cần từ 1 đến 30 ký tự.";
+    if (!draft.brand || draft.brand.length > 80) errors.brand = "Vui lòng chọn hãng xe hợp lệ.";
+    if (!draft.model.trim() || draft.model.trim().length > 100) errors.model = "Mẫu xe cần từ 1 đến 100 ký tự.";
+    if (draft.description.trim().length < 20 || draft.description.trim().length > 2000) errors.description = "Mô tả cần từ 20 đến 2.000 ký tự.";
   }
   if (step === 2) {
-    if (draft.pickupAddress.trim().length < 10) errors.pickupAddress = "Vui lòng nhập địa chỉ nhận xe đầy đủ.";
-    if (!draft.hourPrice || Number(draft.hourPrice) < 50000) errors.hourPrice = "Giá theo giờ tối thiểu 50.000đ.";
-    if (!draft.dayPrice || Number(draft.dayPrice) < 300000) errors.dayPrice = "Giá theo ngày tối thiểu 300.000đ.";
+    if (draft.pickupAddress.trim().length < 10 || draft.pickupAddress.trim().length > 1000) errors.pickupAddress = "Địa chỉ nhận xe cần từ 10 đến 1.000 ký tự.";
+    if (!Number.isFinite(Number(draft.hourPrice)) || Number(draft.hourPrice) < 50000 || Number(draft.hourPrice) > 10000000) errors.hourPrice = "Giá theo giờ từ 50.000đ đến 10.000.000đ.";
+    if (!Number.isFinite(Number(draft.dayPrice)) || Number(draft.dayPrice) < 300000 || Number(draft.dayPrice) > 100000000) errors.dayPrice = "Giá theo ngày từ 300.000đ đến 100.000.000đ.";
+    if (draft.rentalTerms.trim() && (draft.rentalTerms.trim().length < 10 || draft.rentalTerms.trim().length > 1000)) errors.rentalTerms = "Điều khoản cần từ 10 đến 1.000 ký tự.";
     if (draft.weeklyDiscountEnabled && (Number(draft.weeklyDiscountPercent) < 5 || Number(draft.weeklyDiscountPercent) > 30)) {
       errors.weeklyDiscountPercent = "Mức giảm giá cần nằm trong khoảng 5% đến 30%.";
     }
@@ -114,12 +116,13 @@ function validateStep(step: RegisterStep, draft: VehicleDraft, vehicleImages: Fi
     }
   }
   if (step === 3) {
-    if (vehicleImages.length < 1) errors.vehicleImages = "Vui lòng chọn ít nhất 1 ảnh xe.";
+    if (vehicleImages.length < 1 && existingImages < 1) errors.vehicleImages = "Vui lòng chọn ít nhất 1 ảnh xe.";
   }
   return errors;
 }
 
 export function OwnerRegisterPage() {
+  const [editId] = useState(() => new URLSearchParams(window.location.search).get("edit"));
   const [step, setStep] = useState<RegisterStep>(1);
   const [draft, setDraft] = useState<VehicleDraft>(initialDraft);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -127,8 +130,31 @@ export function OwnerRegisterPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [editLoading, setEditLoading] = useState(!!editId);
+  const [editError, setEditError] = useState("");
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const { session } = useAuth();
   const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (!editId || !session) return;
+    let active = true;
+    setEditLoading(true); setEditError("");
+    getRejectedRegistration(session, editId).then(item => {
+      if (!active) return;
+      setDraft({ plateNumber: item.plateNumber, brand: item.brand, model: item.model,
+        productionYear: String(item.productionYear), seats: String(item.seats), transmission: item.transmission,
+        fuelType: item.fuelType, bodyType: item.bodyType, description: item.description, pickupAddress: item.pickupAddress,
+        hourPrice: String(item.hourPrice), dayPrice: String(item.dayPrice), weeklyDiscountEnabled: item.weeklyDiscountEnabled,
+        weeklyDiscountPercent: String(item.weeklyDiscountPercent ?? 10), mileageLimitEnabled: item.mileageLimitEnabled,
+        dailyMileageLimit: String(item.dailyMileageLimitKm ?? 400), overageFeePerKm: String(item.overageFeePerKm ?? 3000),
+        rentalTerms: item.rentalTerms ?? "", features: item.features ?? [] });
+      setExistingImages(item.imageUrls); setRejectionReason(item.rejectionReason);
+    }).catch(error => { if (active) setEditError(error instanceof Error ? error.message : "Không thể tải hồ sơ xe."); })
+      .finally(() => { if (active) setEditLoading(false); });
+    return () => { active = false; };
+  }, [editId, session?.account.accountId]);
 
   const vehicleImageUrls = useMemo(() => vehicleImages.map((file) => URL.createObjectURL(file)), [vehicleImages]);
 
@@ -151,7 +177,7 @@ export function OwnerRegisterPage() {
   };
 
   const next = () => {
-    const nextErrors = validateStep(step, draft, vehicleImages);
+    const nextErrors = validateStep(step, draft, vehicleImages, existingImages.length);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
     setStep((current) => Math.min(3, current + 1) as RegisterStep);
@@ -160,7 +186,7 @@ export function OwnerRegisterPage() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const nextErrors = validateStep(3, draft, vehicleImages);
+    const nextErrors = validateStep(3, draft, vehicleImages, existingImages.length);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
     if (!session) {
@@ -191,7 +217,7 @@ export function OwnerRegisterPage() {
         overageFeePerKm: draft.mileageLimitEnabled ? Number(draft.overageFeePerKm) : null,
         rentalTerms: draft.rentalTerms.trim() || null,
         features: draft.features,
-      }, vehicleImages);
+      }, vehicleImages, editId ?? undefined);
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
     } catch (error) {
@@ -215,12 +241,15 @@ export function OwnerRegisterPage() {
     return next;
   });
 
+  if (editId && !session) return <main className="owner-page"><div className="owner-container"><p>Vui lòng đăng nhập để chỉnh sửa hồ sơ xe.</p><button type="button" onClick={() => window.dispatchEvent(new CustomEvent("bonbon:open-auth", { detail: "login" }))}>Đăng nhập</button></div></main>;
+  if (editId && editLoading) return <main className="owner-page"><div className="owner-container">Đang tải hồ sơ xe…</div></main>;
+  if (editId && editError) return <main className="owner-page"><div className="owner-container"><p role="alert">{editError}</p><a href="/owner/cars">Về danh sách xe</a></div></main>;
   if (submitted) {
     return (
       <main className="owner-page owner-success-page">
         <motion.section className="owner-success" initial={reduceMotion ? false : { opacity: 0, scale: .97, y: 18 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: .5, ease: [0.16, 1, 0.3, 1] }}>
           <span><CheckCircle size={54} weight="fill" /></span>
-          <h1>Đã gửi đăng ký xe</h1>
+          <h1>{editId ? "Đã gửi lại hồ sơ xe" : "Đã gửi đăng ký xe"}</h1>
           <p>BonBon đã nhận thông tin {draft.brand} {draft.model}. Hồ sơ đang chờ kiểm tra trước khi xe được hiển thị.</p>
           <div><a className="owner-primary-button" href="/owner/cars">Xem xe của tôi</a><a className="owner-secondary-button" href="/">Về trang chủ</a></div>
         </motion.section>
@@ -233,10 +262,11 @@ export function OwnerRegisterPage() {
       <div className="owner-container">
         <div className="owner-page-heading">
           <a href="/become-owner" aria-label="Quay lại"><ArrowLeft size={21} weight="bold" /> Quay lại</a>
-          <h1>Đăng ký xe</h1>
+          <h1>{editId ? "Chỉnh sửa hồ sơ xe" : "Đăng ký xe"}</h1>
         </div>
 
         <section className="owner-register-card">
+          {editId && rejectionReason ? <p className="owner-submit-error" role="status">Lý do từ chối: {rejectionReason}</p> : null}
           <ol className="owner-stepper" aria-label="Tiến trình đăng ký">
             {[{ number: 1, label: "Thông tin" }, { number: 2, label: "Cho thuê" }, { number: 3, label: "Hình ảnh" }].map((item) => (
               <li key={item.number} className={step === item.number ? "is-active" : step > item.number ? "is-complete" : ""}>
@@ -264,7 +294,7 @@ export function OwnerRegisterPage() {
                       <label><span>Hãng xe *</span><select value={draft.brand} onChange={(event) => setField("brand", event.target.value)}><option value="">Chọn hãng xe</option>{brands.map((brand) => <option key={brand}>{brand}</option>)}</select><FieldError>{errors.brand}</FieldError></label>
                       <label><span>Mẫu xe *</span><input value={draft.model} onChange={(event) => setField("model", event.target.value)} placeholder="Ví dụ: Vios" /><FieldError>{errors.model}</FieldError></label>
                       <label><span>Năm sản xuất</span><select value={draft.productionYear} onChange={(event) => setField("productionYear", event.target.value)}>{years.map((year) => <option key={year}>{year}</option>)}</select></label>
-                      <label><span>Số chỗ</span><select value={draft.seats} onChange={(event) => setField("seats", event.target.value)}>{[4, 5, 7].map((value) => <option value={value} key={value}>{value} chỗ</option>)}</select></label>
+                      <label><span>Số chỗ</span><select value={draft.seats} onChange={(event) => setField("seats", event.target.value)}>{[4, 5, 6, 7].map((value) => <option value={value} key={value}>{value} chỗ</option>)}</select></label>
                       <label><span>Dòng xe</span><select value={draft.bodyType} onChange={(event) => setField("bodyType", event.target.value)}><option value="Sedan">Sedan</option><option value="SUV">SUV</option><option value="MPV">MPV</option><option value="Hatchback">Hatchback</option></select></label>
                       <label><span>Truyền động</span><select value={draft.transmission} onChange={(event) => setField("transmission", event.target.value)}><option value="Automatic">Số tự động</option><option value="Manual">Số sàn</option></select></label>
                       <label><span>Nhiên liệu</span><select value={draft.fuelType} onChange={(event) => setField("fuelType", event.target.value)}><option value="Gasoline">Xăng</option><option value="Diesel">Dầu diesel</option><option value="Electric">Điện</option><option value="Hybrid">Xăng và điện</option></select></label>
@@ -278,7 +308,7 @@ export function OwnerRegisterPage() {
                   <div className="owner-mioto-rental">
                     <section className="owner-mioto-section owner-mioto-pricing">
                       <h2>Đơn giá thuê mặc định</h2>
-                      <p>Đơn giá áp dụng cho tất cả các ngày. Bạn có thể điều chỉnh lại sau khi xe được duyệt.</p>
+                      <p>Đơn giá áp dụng cho tất cả các ngày.</p>
                       <div className="owner-mioto-price-grid">
                         <label><span>Giá thuê theo giờ *</span><small>Giá đề xuất: 120K</small><div className="owner-price-input"><input type="number" min="50000" step="10000" value={draft.hourPrice} onChange={(event) => setField("hourPrice", event.target.value)} placeholder="120000" /><b>đ/giờ</b></div><FieldError>{errors.hourPrice}</FieldError></label>
                         <label><span>Giá thuê theo ngày *</span><small>Giá đề xuất: 700K</small><div className="owner-price-input"><input type="number" min="300000" step="10000" value={draft.dayPrice} onChange={(event) => setField("dayPrice", event.target.value)} placeholder="700000" /><b>đ/ngày</b></div><FieldError>{errors.dayPrice}</FieldError></label>
@@ -318,6 +348,7 @@ export function OwnerRegisterPage() {
                       <p>Ghi rõ các yêu cầu để khách có thể thuê xe.</p>
                       <label htmlFor="rental-terms" className="sr-only">Điều khoản thuê xe</label>
                       <textarea id="rental-terms" value={draft.rentalTerms} onChange={(event) => setField("rentalTerms", event.target.value)} placeholder="Không sử dụng xe vào mục đích phi pháp. Lái xe cẩn thận, giữ xe sạch sẽ, trả xe đúng giờ. Phụ thu 500K nếu hút thuốc lá trong xe." rows={5} />
+                      <FieldError>{errors.rentalTerms}</FieldError>
                     </section>
                   </div>
                 ) : null}
@@ -326,9 +357,10 @@ export function OwnerRegisterPage() {
                   <>
                     <div className="owner-form-section-heading"><ImageSquare size={25} weight="duotone" /><div><h2>Hình ảnh</h2><p>Đăng nhiều hình ở các góc độ khác nhau để tăng thông tin cho xe của bạn.</p></div></div>
                     <div className="owner-upload-section owner-vehicle-gallery">
-                      <div className="owner-gallery-meta"><p>Chọn từ 1 đến 8 ảnh. Ảnh đầu tiên là ảnh đại diện.</p><strong>{vehicleImages.length}/8</strong></div>
+                      <div className="owner-gallery-meta"><p>{editId ? "Giữ ảnh hiện tại hoặc chọn ảnh mới để thay toàn bộ ảnh. Ảnh đầu tiên là ảnh đại diện." : "Chọn từ 1 đến 8 ảnh. Ảnh đầu tiên là ảnh đại diện."}</p><strong>{vehicleImages.length || existingImages.length}/8</strong></div>
                       <div className="owner-image-preview-grid">
                         {vehicleImages.length < 8 ? <label className="owner-add-image-tile"><Camera size={34} weight="duotone" /><strong>CHỌN HÌNH</strong><span>JPG, PNG, WebP</span><input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={onVehicleImages} /></label> : null}
+                        {vehicleImages.length === 0 ? existingImages.map((url, index) => <figure key={url}><img src={url} alt={`Ảnh xe hiện tại ${index + 1}`} />{index === 0 ? <span>Ảnh đại diện</span> : null}</figure>) : null}
                         {vehicleImageUrls.map((url, index) => <figure key={url}><button className="owner-image-main-action" type="button" onClick={() => makeCover(index)} aria-label={`Đặt ảnh ${index + 1} làm ảnh đại diện`}><img src={url} alt={`Ảnh xe ${index + 1}`} /></button>{index === 0 ? <span>Ảnh đại diện</span> : null}<button className="owner-image-delete" type="button" aria-label={`Xóa ảnh ${index + 1}`} onClick={() => setVehicleImages((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Trash /></button></figure>)}
                       </div>
                       <FieldError>{errors.vehicleImages}</FieldError>
@@ -341,7 +373,7 @@ export function OwnerRegisterPage() {
 
             <div className="owner-form-actions">
               {step > 1 ? <button className="owner-secondary-button" type="button" onClick={() => setStep((current) => Math.max(1, current - 1) as RegisterStep)}><ArrowLeft /> Quay lại</button> : <a className="owner-secondary-button" href="/become-owner"><ArrowLeft /> Quay lại</a>}
-              {step < 3 ? <button key="next" className="owner-primary-button" type="button" onClick={next}>Kế tiếp <ArrowRight /></button> : <button key="submit" className="owner-primary-button" type="submit" disabled={submitting}>{submitting ? "Đang gửi..." : "Đăng ký"} <CheckCircle weight="fill" /></button>}
+              {step < 3 ? <button key="next" className="owner-primary-button" type="button" onClick={next}>Kế tiếp <ArrowRight /></button> : <button key="submit" className="owner-primary-button" type="submit" disabled={submitting}>{submitting ? "Đang gửi..." : editId ? "Gửi lại hồ sơ" : "Đăng ký"} <CheckCircle weight="fill" /></button>}
             </div>
           </form>
         </section>

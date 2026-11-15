@@ -32,8 +32,17 @@ interface ProblemDetails {
   errors?: Record<string, string[]>;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
-const SESSION_KEY = "bonbon.auth.session";
+const API_BASE_URL = (import.meta.env?.VITE_API_URL || "/api").replace(/\/$/, "");
+export const SESSION_KEY = "bonbon.auth.session";
+
+export class AuthRequestError extends Error {
+  readonly status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "AuthRequestError";
+    this.status = status;
+  }
+}
 
 function getDeviceInfo() {
   return `BonBon Web · ${navigator.userAgent}`.slice(0, 512);
@@ -69,7 +78,7 @@ async function post<T>(path: string, body: unknown, accessToken?: string) {
   });
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw new AuthRequestError(await parseError(response), response.status);
   }
 
   if (response.status === 204) {

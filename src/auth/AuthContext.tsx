@@ -7,11 +7,13 @@ import {
   refresh as refreshRequest,
   register as registerRequest,
   storeSession,
+  SESSION_KEY,
   type AuthSession,
   type LoginPayload,
   type RegisterPayload,
 } from "./auth-api";
 import { setActiveAccount } from "./user-store";
+import { createSessionRefresh, sameSession } from "./session-refresh";
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -20,6 +22,7 @@ interface AuthContextValue {
   register: (payload: RegisterPayload) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshPermissions: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -33,27 +36,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return stored;
   });
   const [isRestoring, setIsRestoring] = useState(true);
+  const sessionRef = useRef(session);
+  const [retryAt, setRetryAt] = useState(0);
+  const [refreshSession] = useState(() => createSessionRefresh({
+    read: readStoredSession,
+    write: storeSession,
+    request: refreshRequest,
+    withLock: async action => navigator.locks
+      ? await navigator.locks.request("bonbon.auth.refresh", action)
+      : action(),
+  }));
 
-  // Gộp các request refresh đang chạy: nhiều component/tab có thể refresh
-  // cùng lúc. Backend chỉ chấp nhận một lần dùng mỗi refresh token, nên nếu gọi
-  // song song thì các lần sau sẽ bị từ chối. Chỉ một request thực sự đi ra.
-  const refreshInFlight = useRef<Promise<AuthSession> | null>(null);
-
-  const commitSession = useCallback((nextSession: AuthSession | null) => {
-    storeSession(nextSession);
+  const applySession = useCallback((nextSession: AuthSession | null) => {
+    sessionRef.current = nextSession;
     setSession(nextSession);
-    // Dữ liệu cá nhân được namespace theo accountId — đổi tài khoản thì
-    // mọi màn hình phải đọc lại dữ liệu của tài khoản mới.
     setActiveAccount(nextSession?.account.accountId ?? null);
   }, []);
 
-  const refreshSession = useCallback((current: AuthSession) => {
-    if (!refreshInFlight.current) {
-      refreshInFlight.current = refreshRequest(current.refreshToken)
-        .finally(() => { refreshInFlight.current = null; });
-    }
-    return refreshInFlight.current;
-  }, []);
+  const commitSession = useCallback((nextSession: AuthSession | null) => {
+    storeSession(nextSession);
+    applySession(nextSession);
+    setRetryAt(0);
+  }, [applySession]);
+
+  useEffect(() => {
+    const syncSession = (event: StorageEvent) => {
+      if (event.key === SESSION_KEY || event.key === null) {
+        applySession(readStoredSession());
+        setRetryAt(0);
+      }
+    };
+    window.addEventListener("storage", syncSession);
+    return () => window.removeEventListener("storage", syncSession);
+  }, [applySession]);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,12 +86,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const nextSession = await refreshRequest(session.refreshToken);
-        if (!cancelled) commitSession(nextSession);
+        await refreshSession(session);
       } catch {
-        if (!cancelled) commitSession(null);
+        if (!cancelled && sameSession(readStoredSession(), session)) setRetryAt(Date.now() + 30_000);
       } finally {
-        if (!cancelled) setIsRestoring(false);
+        if (!cancelled) {
+          applySession(readStoredSession());
+          setIsRestoring(false);
+        }
       }
     }
 
@@ -85,19 +102,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []); // Restore the persisted session once when the application starts.
 
   useEffect(() => {
-    if (!session) return;
+    if (!session || isRestoring) return;
 
-    const refreshIn = Math.max(session.accessTokenExpiresAt * 1000 - Date.now() - 60_000, 1_000);
+    const refreshIn = Math.max(session.accessTokenExpiresAt * 1000 - Date.now() - 60_000, retryAt - Date.now(), 1_000);
     const timeout = window.setTimeout(async () => {
       try {
-        commitSession(await refreshSession(session));
+        await refreshSession(session);
       } catch {
-        commitSession(null);
+        if (sameSession(readStoredSession(), session)) setRetryAt(Date.now() + 30_000);
+      } finally {
+        applySession(readStoredSession());
       }
     }, refreshIn);
 
     return () => window.clearTimeout(timeout);
-  }, [commitSession, refreshSession, session]);
+  }, [applySession, refreshSession, session, isRestoring, retryAt]);
 
   const value = useMemo<AuthContextValue>(() => ({
     session,
@@ -111,8 +130,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async loginWithGoogle(idToken) {
       commitSession(await googleLoginRequest(idToken));
     },
+    async refreshPermissions() {
+      const current = readStoredSession();
+      if (!current) return;
+      try { await refreshSession(current); }
+      finally { applySession(readStoredSession()); }
+    },
     async logout() {
-      const currentSession = session;
+      const currentSession = readStoredSession() ?? sessionRef.current;
       commitSession(null);
       if (!currentSession) return;
 
@@ -122,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // The local session must still be cleared if the API is unavailable.
       }
     },
-  }), [commitSession, isRestoring, session]);
+  }), [applySession, commitSession, isRestoring, refreshSession, session]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

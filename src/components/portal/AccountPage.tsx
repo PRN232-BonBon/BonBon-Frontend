@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Camera, CheckCircle, IdentificationCard, PencilSimple, UploadSimple } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
-import { readUserValue, subscribeUserStore, writeUserValue } from "../../auth/user-store";
+import { captureUserWriter, readUserValue, subscribeUserStore } from "../../auth/user-store";
 import { getMyBookings, getProfile, updateProfile, type AccountProfile } from "../../portal/portal-api";
 
 const LICENSE_KEY = "license.preview";
 const COMPLETED_STATUSES = new Set(["Completed"]);
 
 export function AccountPage() {
-  const { session } = useAuth();
+  const { session, refreshPermissions } = useAuth();
   const accountId = session?.account.accountId;
 
   const [editing, setEditing] = useState(false);
@@ -38,6 +38,11 @@ export function AccountPage() {
       .then((data) => {
         if (cancelled) return;
         setProfile(data);
+        if (data.roles.includes("VehicleOwner") && !session.account.roles.includes("VehicleOwner")) {
+          void refreshPermissions().catch(() => {
+            if (!cancelled) setMessage({ type: "error", text: "Chưa thể cập nhật quyền chủ xe. Vui lòng tải lại trang hoặc đăng nhập lại." });
+          });
+        }
         setForm({
           fullName: data.fullName,
           displayName: data.displayName ?? "",
@@ -46,6 +51,26 @@ export function AccountPage() {
       })
       .catch(() => { if (!cancelled) setProfile(null); });
     return () => { cancelled = true; };
+  }, [session]);
+
+  // Check an account waiting for its first vehicle approval without resetting form edits.
+  useEffect(() => {
+    if (!session || session.account.roles.includes("VehicleOwner")) return;
+    let cancelled = false;
+    let checking = false;
+    const check = async () => {
+      if (checking) return;
+      checking = true;
+      try {
+        const latest = await getProfile(session);
+        if (!cancelled && latest.roles.includes("VehicleOwner")) await refreshPermissions();
+      } catch { /* Retry on the next check; the existing session stays usable. */ }
+      finally { checking = false; }
+    };
+    const timer = window.setInterval(() => void check(), 30_000);
+    const onVisible = () => { if (!document.hidden) void check(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { cancelled = true; window.clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); };
   }, [session]);
 
   // Số chuyến hoàn thành lấy từ dữ liệu booking thật, không hardcode.
@@ -69,11 +94,11 @@ export function AccountPage() {
 
   const onLicense = useCallback((file?: File) => {
     if (!file) return;
+    const writeLicense = captureUserWriter<string>(LICENSE_KEY);
     const reader = new FileReader();
     reader.onload = () => {
       const value = String(reader.result);
-      writeUserValue(LICENSE_KEY, value);
-      setLicenseImage(value);
+      if (writeLicense(value)) setLicenseImage(value);
     };
     reader.readAsDataURL(file);
   }, []);
@@ -102,6 +127,7 @@ export function AccountPage() {
   return (
     <>
       <div className="portal-title-row"><h1>Tài khoản của tôi</h1></div>
+      <p><a className="icon-text-button" href="/owner/cars">Xem hồ sơ đăng ký xe của tôi</a></p>
       <article className="portal-card account-card">
         <div className="card-heading">
           <div><h2>Thông tin tài khoản</h2><p>Quản lý thông tin để bảo mật tài khoản của bạn.</p></div>

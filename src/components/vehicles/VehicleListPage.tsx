@@ -18,6 +18,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import type { VehicleListing } from "../../data/demo-vehicles";
+import { fuelLabel } from "../../vehicles/fuel-label";
 import { getVehicleCatalog } from "../../owner/catalog-api";
 import {
   createDefaultRentalSelection,
@@ -44,7 +45,7 @@ function initialRentalSelection(): RentalSelection {
   return { rentalType, startAt, endAt, billableUnits, unitLabel: rentalType === "Hourly" ? "giờ" : "ngày" };
 }
 
-function VehicleCard({ vehicle, index, onOpen }: { vehicle: VehicleListing; index: number; onOpen: (vehicleId: string) => void }) {
+function VehicleCard({ vehicle, index, onOpen, rentalType }: { vehicle: VehicleListing; index: number; onOpen: (vehicleId: string) => void; rentalType: "Hourly" | "Daily" }) {
   const [favorite, setFavorite] = useState(false);
   const reduceMotion = useReducedMotion();
   return (
@@ -70,12 +71,12 @@ function VehicleCard({ vehicle, index, onOpen }: { vehicle: VehicleListing; inde
         <div className="vehicle-specs">
           <span><SteeringWheel /> {vehicle.transmission === "Automatic" ? "Số tự động" : "Số sàn"}</span>
           <span><Seat /> {vehicle.seats} chỗ</span>
-          <span><GasPump /> {vehicle.fuel === "Electric" ? "Điện" : "Xăng"}</span>
+          <span><GasPump /> {fuelLabel(vehicle.fuel)}</span>
         </div>
         <p className="vehicle-address"><MapPin weight="fill" /> {vehicle.pickupAddress}</p>
         <div className="vehicle-card-footer">
           <span className="vehicle-rating">{vehicle.rating > 0 ? <><Star weight="fill" /> {vehicle.rating.toFixed(1)} <i>•</i> {vehicle.completedTrips} chuyến</> : "Xe mới"}</span>
-          <strong>{money.format(vehicle.dayPrice / 1000)}K<small>/ngày</small></strong>
+          <strong>{money.format((rentalType === "Hourly" ? vehicle.hourPrice : vehicle.dayPrice) / 1000)}K<small>/{rentalType === "Hourly" ? "giờ" : "ngày"}</small></strong>
         </div>
       </div>
     </motion.article>
@@ -95,7 +96,7 @@ export function VehicleListPage() {
   const [seats, setSeats] = useState("all");
   const [fuel, setFuel] = useState("all");
   const [sort, setSort] = useState<SortValue>("recommended");
-  const [maxPrice, setMaxPrice] = useState(1500000);
+  const [maxPrice, setMaxPrice] = useState("");
   const [catalog, setCatalog] = useState<VehicleListing[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState("");
@@ -137,18 +138,18 @@ export function VehicleListPage() {
       && (transmission === "all" || vehicle.transmission === transmission)
       && (seats === "all" || vehicle.seats === Number(seats))
       && (fuel === "all" || vehicle.fuel === fuel)
-      && vehicle.dayPrice <= maxPrice,
+      && (!maxPrice || (rentalWindow.rentalType === "Hourly" ? vehicle.hourPrice : vehicle.dayPrice) <= Number(maxPrice)),
     );
     return [...matches].sort((a, b) => {
-      if (sort === "price-asc") return a.dayPrice - b.dayPrice;
-      if (sort === "price-desc") return b.dayPrice - a.dayPrice;
+      if (sort === "price-asc") return (rentalWindow.rentalType === "Hourly" ? a.hourPrice - b.hourPrice : a.dayPrice - b.dayPrice);
+      if (sort === "price-desc") return (rentalWindow.rentalType === "Hourly" ? b.hourPrice - a.hourPrice : b.dayPrice - a.dayPrice);
       if (sort === "rating") return b.rating - a.rating || b.completedTrips - a.completedTrips;
       return Number(b.instantBook) - Number(a.instantBook) || b.completedTrips - a.completedTrips;
     });
-  }, [catalog, bodyType, brand, fuel, maxPrice, seats, sort, transmission]);
+  }, [catalog, bodyType, brand, fuel, maxPrice, seats, sort, transmission, rentalWindow.rentalType]);
 
   const resetFilters = () => {
-    setBodyType("all"); setBrand("all"); setTransmission("all"); setSeats("all"); setFuel("all"); setSort("recommended"); setMaxPrice(1500000);
+    setBodyType("all"); setBrand("all"); setTransmission("all"); setSeats("all"); setFuel("all"); setSort("recommended"); setMaxPrice("");
   };
 
   return (
@@ -171,7 +172,7 @@ export function VehicleListPage() {
           <label className={bodyType !== "all" ? "is-filtered" : ""}><CarProfile /><select value={bodyType} onChange={(event) => setBodyType(event.target.value)} aria-label="Loại xe"><option value="all">Loại xe</option><option value="Sedan">Sedan</option><option value="SUV">SUV</option><option value="MPV">MPV</option><option value="Hatchback">Hatchback</option></select><CaretDown /></label>
           <label className={brand !== "all" ? "is-filtered" : ""}><SteeringWheel /><select value={brand} onChange={(event) => setBrand(event.target.value)} aria-label="Hãng xe"><option value="all">Hãng xe</option>{brands.map((item) => <option key={item}>{item}</option>)}</select><CaretDown /></label>
           <label className={transmission !== "all" ? "is-filtered" : ""}><SteeringWheel /><select value={transmission} onChange={(event) => setTransmission(event.target.value)} aria-label="Truyền động"><option value="all">Truyền động</option><option value="Automatic">Số tự động</option><option value="Manual">Số sàn</option></select><CaretDown /></label>
-          <label className={seats !== "all" ? "is-filtered" : ""}><Seat /><select value={seats} onChange={(event) => setSeats(event.target.value)} aria-label="Số chỗ"><option value="all">Số chỗ</option><option value="4">4 chỗ</option><option value="5">5 chỗ</option><option value="7">7 chỗ</option></select><CaretDown /></label>
+          <label className={seats !== "all" ? "is-filtered" : ""}><Seat /><select value={seats} onChange={(event) => setSeats(event.target.value)} aria-label="Số chỗ"><option value="all">Số chỗ</option><option value="4">4 chỗ</option><option value="5">5 chỗ</option><option value="6">6 chỗ</option><option value="7">7 chỗ</option></select><CaretDown /></label>
           <button className="advanced-filter-trigger" type="button" onClick={() => setIsFilterOpen(true)}><FadersHorizontal /> Bộ lọc</button>
         </div>
       </section>
@@ -181,21 +182,21 @@ export function VehicleListPage() {
           <div><p>Xe tự lái</p><h1>Xe tại {location}</h1><span>{vehicles.length} xe phù hợp với lựa chọn của bạn</span></div>
           <label className="sort-control">Sắp xếp<select value={sort} onChange={(event) => setSort(event.target.value as SortValue)}><option value="recommended">Tối ưu</option><option value="price-asc">Giá thấp nhất</option><option value="price-desc">Giá cao nhất</option><option value="rating">Đánh giá tốt nhất</option></select><CaretDown /></label>
         </div>
-        {catalogLoading ? <div className="vehicle-empty" role="status"><CarProfile size={56} /><p>Đang tải danh sách xe…</p></div> : catalogError ? <div className="vehicle-empty" role="alert"><h2>Chưa thể tải danh sách xe</h2><p>{catalogError}</p><button type="button" onClick={() => window.location.reload()}>Thử lại</button></div> : vehicles.length ? <div className="vehicle-grid">{vehicles.map((vehicle, index) => <VehicleCard vehicle={vehicle} index={index} onOpen={openVehicle} key={vehicle.id} />)}</div> : <div className="vehicle-empty"><CarProfile size={56} /><h2>Chưa tìm thấy xe phù hợp</h2><p>Hãy thử nới lỏng một vài điều kiện lọc.</p><button type="button" onClick={resetFilters}>Xóa bộ lọc</button></div>}
+        {catalogLoading ? <div className="vehicle-empty" role="status"><CarProfile size={56} /><p>Đang tải danh sách xe…</p></div> : catalogError ? <div className="vehicle-empty" role="alert"><h2>Chưa thể tải danh sách xe</h2><p>{catalogError}</p><button type="button" onClick={() => window.location.reload()}>Thử lại</button></div> : vehicles.length ? <div className="vehicle-grid">{vehicles.map((vehicle, index) => <VehicleCard vehicle={vehicle} index={index} onOpen={openVehicle} rentalType={rentalWindow.rentalType} key={vehicle.id} />)}</div> : <div className="vehicle-empty"><CarProfile size={56} /><h2>Chưa tìm thấy xe phù hợp</h2><p>Hãy thử nới lỏng một vài điều kiện lọc.</p><button type="button" onClick={resetFilters}>Xóa bộ lọc</button></div>}
       </section>
 
       {selectedVehicle ? <CarDetailModal vehicle={selectedVehicle} initialRentalWindow={rentalWindow} onClose={closeVehicle} /> : null}
-      {isTimeOpen ? <RentalTimeModal value={rentalWindow} onClose={() => setIsTimeOpen(false)} onConfirm={(selection) => { setRentalWindow(selection); setIsTimeOpen(false); }} /> : null}
+      {isTimeOpen ? <RentalTimeModal value={rentalWindow} onClose={() => setIsTimeOpen(false)} onConfirm={(selection) => { if (selection.rentalType !== rentalWindow.rentalType) setMaxPrice(""); setRentalWindow(selection); setIsTimeOpen(false); }} /> : null}
       {isFilterOpen ? createPortal(
         <div className="vehicle-filter-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsFilterOpen(false); }}>
           <section className="vehicle-filter-modal" role="dialog" aria-modal="true" aria-labelledby="vehicle-filter-title">
             <header><h2 id="vehicle-filter-title">Bộ lọc</h2><button type="button" onClick={() => setIsFilterOpen(false)} aria-label="Đóng bộ lọc"><X /></button></header>
             <div className="vehicle-filter-content">
               <label className="filter-field"><span>Sắp xếp</span><select value={sort} onChange={(event) => setSort(event.target.value as SortValue)}><option value="recommended">Tối ưu</option><option value="price-asc">Giá thấp nhất</option><option value="price-desc">Giá cao nhất</option><option value="rating">Đánh giá tốt nhất</option></select></label>
-              <fieldset><legend>Mức giá tối đa</legend><input type="range" min="500000" max="1500000" step="50000" value={maxPrice} onChange={(event) => setMaxPrice(Number(event.target.value))} /><strong>{money.format(maxPrice)}₫/ngày</strong></fieldset>
+              <fieldset><legend>Mức giá tối đa (đ/{rentalWindow.rentalType === "Hourly" ? "giờ" : "ngày"})</legend><input aria-label="Mức giá tối đa" type="number" min="0" step="10000" value={maxPrice} placeholder="Không giới hạn" onChange={(event) => setMaxPrice(event.target.value)} /></fieldset>
               <fieldset><legend>Truyền động</legend><div className="filter-options">{[["all", "Tất cả"], ["Automatic", "Số tự động"], ["Manual", "Số sàn"]].map(([value, label]) => <label key={value}><input type="radio" name="transmission" value={value} checked={transmission === value} onChange={(event) => setTransmission(event.target.value)} /> {label}</label>)}</div></fieldset>
-              <fieldset><legend>Số chỗ</legend><div className="filter-options">{[["all", "Tất cả"], ["4", "4 chỗ"], ["5", "5 chỗ"], ["7", "7 chỗ"]].map(([value, label]) => <label key={value}><input type="radio" name="seats" value={value} checked={seats === value} onChange={(event) => setSeats(event.target.value)} /> {label}</label>)}</div></fieldset>
-              <fieldset><legend>Nhiên liệu</legend><div className="filter-options">{[["all", "Tất cả"], ["Gasoline", "Xăng"], ["Electric", "Điện"]].map(([value, label]) => <label key={value}><input type="radio" name="fuel" value={value} checked={fuel === value} onChange={(event) => setFuel(event.target.value)} /> {label}</label>)}</div></fieldset>
+              <fieldset><legend>Số chỗ</legend><div className="filter-options">{[["all", "Tất cả"], ["4", "4 chỗ"], ["5", "5 chỗ"], ["6", "6 chỗ"], ["7", "7 chỗ"]].map(([value, label]) => <label key={value}><input type="radio" name="seats" value={value} checked={seats === value} onChange={(event) => setSeats(event.target.value)} /> {label}</label>)}</div></fieldset>
+              <fieldset><legend>Nhiên liệu</legend><div className="filter-options">{[["all", "Tất cả"], ["Gasoline", "Xăng"], ["Diesel", "Dầu diesel"], ["Electric", "Điện"], ["Hybrid", "Xăng và điện"]].map(([value, label]) => <label key={value}><input type="radio" name="fuel" value={value} checked={fuel === value} onChange={(event) => setFuel(event.target.value)} /> {label}</label>)}</div></fieldset>
             </div>
             <footer><button className="filter-reset" type="button" onClick={resetFilters}>Xóa bộ lọc</button><button className="filter-apply" type="button" onClick={() => setIsFilterOpen(false)}>Áp dụng · {vehicles.length} xe</button></footer>
           </section>
