@@ -53,14 +53,14 @@ export async function getOccupiedIntervals(vehicleId: string, startAt: string, e
 }
 
 export async function checkVehicleAvailability(vehicleId: string, payload: RentalWindowPayload): Promise<boolean> {
-  const query = new URLSearchParams({ vehicleId, ...payload });
-  const response = await fetch(`${API_BASE_URL}/bookings/availability?${query}`, { cache: "no-store" });
+  const query = new URLSearchParams({ ...payload });
+  const response = await fetch(`${API_BASE_URL}/vehicles/${encodeURIComponent(vehicleId)}/availability?${query}`, { cache: "no-store" });
   if (!response.ok) throw new Error("Không thể kiểm tra lịch xe. Vui lòng thử lại.");
   return ((await response.json()) as { isAvailable: boolean }).isAvailable;
 }
 
 export async function getBookingQuote(vehicleId: string, payload: RentalWindowPayload, signal?: AbortSignal): Promise<BookingQuote> {
-  const response = await fetch(`${API_BASE_URL}/bookings/quote`, {
+  const response = await fetch(`${API_BASE_URL}/bookings/price-estimates`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ vehicleId, ...payload }),
@@ -76,7 +76,7 @@ export async function getBookingQuote(vehicleId: string, payload: RentalWindowPa
 }
 
 export async function validateRentalWindow(payload: RentalWindowPayload) {
-  const response = await fetch(`${API_BASE_URL}/bookings/validate-window`, {
+  const response = await fetch(`${API_BASE_URL}/rentals/time-validations`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

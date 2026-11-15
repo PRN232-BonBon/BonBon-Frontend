@@ -48,7 +48,7 @@ async function api<T>(path: string, session: AuthSession, init?: RequestInit) {
 }
 
 export async function getMyBookings(session: AuthSession, signal?: AbortSignal) {
-  const items = await api<CustomerBooking[]>("/bookings/mine", session, { signal });
+  const items = await api<CustomerBooking[]>("/bookings?participantRole=customer", session, { signal });
   return items.map(item => ({ ...item, coverImageUrl: resolveBookingImage(item.coverImageUrl) }));
 }
 

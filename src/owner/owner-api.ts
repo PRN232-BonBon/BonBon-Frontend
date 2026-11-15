@@ -104,7 +104,7 @@ async function bookingRequest<T>(session: AuthSession, path: string, method: "GE
 }
 
 export function getOwnerBookings(session: AuthSession, signal?: AbortSignal) {
-  return bookingRequest<OwnerBooking[]>(session, "/bookings/owner", "GET", signal).then(items => items.map(item => ({
+  return bookingRequest<OwnerBooking[]>(session, "/bookings?participantRole=owner", "GET", signal).then(items => items.map(item => ({
     ...item,
     coverImageUrl: ownerImageUrl(item.coverImageUrl),
   })));

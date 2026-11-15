@@ -1,17 +1,28 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getBookingQuote, createBooking } from "../src/booking/booking-api.ts";
+import { checkVehicleAvailability, getBookingQuote, createBooking } from "../src/booking/booking-api.ts";
 import { formatBookingDate, formatBookingMoney } from "../src/booking/booking-display.ts";
 
 const windowPayload = { rentalType: "Daily", startAt: "2026-11-06T02:00:00.000Z", endAt: "2026-11-13T02:00:00.000Z" };
 const expectedQuote = { billableUnits: 7, unitPrice: 700000, weeklyDiscountPercent: 10, discountAmount: 490000, quotedRentalAmount: 4410000, includedMileageKm: 2100, overageFeePerKm: 3000, rentalTerms: null };
+
+test("availability sends the vehicle resource and all rental filters", async context => {
+  context.mock.method(globalThis, "fetch", async (url, options) => {
+    const parsed = new URL(url, "https://example.test");
+    assert.equal(parsed.pathname, "/api/vehicles/vehicle-1/availability");
+    for (const [key, value] of Object.entries(windowPayload)) assert.equal(parsed.searchParams.get(key), value);
+    assert.equal(options.cache, "no-store");
+    return Response.json({ isAvailable: true });
+  });
+  assert.equal(await checkVehicleAvailability("vehicle-1", windowPayload), true);
+});
 
 test("preview calls the quote endpoint only, never creates a booking", async context => {
   const signal = new AbortController().signal;
   let calls = 0;
   context.mock.method(globalThis, "fetch", async (url, options) => {
     calls++;
-    assert.equal(url, "/api/bookings/quote");
+    assert.equal(url, "/api/bookings/price-estimates");
     assert.equal(options.method, "POST");
     assert.equal(options.signal, signal);
     assert.deepEqual(JSON.parse(options.body), { vehicleId: "vehicle-1", ...windowPayload });

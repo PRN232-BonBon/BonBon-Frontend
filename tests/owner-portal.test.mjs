@@ -37,7 +37,7 @@ test("owner views use authenticated owner endpoints, not the public catalog", as
   const seen = [];
   context.mock.method(globalThis, "fetch", async (url, init) => { seen.push(url); assert.equal(init.headers.Authorization, "Bearer local-test"); assert.equal(init.method, "GET"); assert.ok(init.signal); return Response.json([]); });
   await getOwnerVehicles(session); await getOwnerBookings(session); await getOwnerBlocks(session, "2026-11-02T00:00:00+07:00", "2026-11-16T00:00:00+07:00");
-  assert.equal(seen[0], "/api/vehicles/mine"); assert.equal(seen[1], "/api/bookings/owner");
+  assert.equal(seen[0], "/api/vehicles/mine"); assert.equal(seen[1], "/api/bookings?participantRole=owner");
   const url = new URL(seen[2], "http://localhost"); assert.equal(url.searchParams.get("startAt"), "2026-11-02T00:00:00+07:00");
 });
 test("owner decisions send neither owner identity, price nor a chosen status", async context => {
