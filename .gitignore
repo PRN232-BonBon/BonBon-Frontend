@@ -9,3 +9,7 @@ dist-admin/
 .idea/
 .vscode/
 coverage/
+dist-payment-staging/
+dist-payment-sandbox/
+test-results/
+playwright-report/

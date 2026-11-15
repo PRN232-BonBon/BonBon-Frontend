@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
-import { ArrowSquareOut, CheckCircle, Clock, ShieldCheck, SpinnerGap, WarningCircle } from "@phosphor-icons/react";
+import { CheckCircle, Clock, ShieldCheck, SpinnerGap, WarningCircle } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
 import { getBookingDetail } from "../../portal/portal-api";
 import { canPayBooking } from "../../booking/booking-status";
 import { formatBookingMoney as money } from "../../booking/booking-display";
-import { createPayment, paymentErrorMessage, safeCheckoutUrl, verifiedPaymentSucceeded, type PaymentCheckout } from "../../payment/payment-api";
+import { createPayment, paymentErrorMessage, isSafeCheckoutForm, verifiedPaymentSucceeded, type PaymentCheckout } from "../../payment/payment-api";
 import { usePaymentStatus } from "../../payment/usePaymentStatus";
 import { BookingModalShell } from "./BookingModalShell";
 import "./payment.css";
@@ -18,7 +17,7 @@ export function PaymentModal({ bookingId, onClose, onPaid }: { bookingId: string
   const { status, error: statusError, checking, refresh } = usePaymentStatus(checkout?.paymentId ?? null, session);
   const notified = useRef(false);
   const paid = verifiedPaymentSucceeded(status);
-  const url = safeCheckoutUrl(checkout?.checkoutUrl ?? null);
+  const form = checkout?.checkout && isSafeCheckoutForm(checkout.checkout) ? checkout.checkout : null;
   const remaining = checkout ? Math.max(0, Math.ceil((Date.parse(checkout.expiresAt) - now) / 1000)) : 0;
   const failed = status && ["Failed", "Cancelled", "Refunded"].includes(status.status);
   const reconciliation = status?.requiresReconciliation;
@@ -36,7 +35,6 @@ export function PaymentModal({ bookingId, onClose, onPaid }: { bookingId: string
         if (!active) return;
         if (payment.bookingId !== bookingId || payment.amount !== detail.quotedRentalAmount || payment.currency !== "VND")
           throw new Error("Thông tin thanh toán không khớp đơn hàng. Vui lòng liên hệ quản trị viên.");
-        if (payment.checkoutUrl && !safeCheckoutUrl(payment.checkoutUrl)) throw new Error("Địa chỉ thanh toán không thuộc cổng VNPay được phép.");
         setNow(Date.now()); setCheckout(payment);
       } catch (reason) { if (active) setError(paymentErrorMessage(reason)); }
       finally { if (active) setLoading(false); }
@@ -55,7 +53,7 @@ export function PaymentModal({ bookingId, onClose, onPaid }: { bookingId: string
   useEffect(() => { if (paid && !notified.current) { notified.current = true; onPaid(); } }, [paid, onPaid]);
   return <BookingModalShell title="Thanh toán đơn hàng" onClose={onClose} className="payment-modal">
     <div className="payment-content">
-      <span className="payment-environment"><ShieldCheck size={16} />VNPay Sandbox · Môi trường thử nghiệm</span>
+      <span className="payment-environment"><ShieldCheck size={16} />SePay Sandbox · Môi trường thử nghiệm</span>
       {loading ? <div className="booking-confirmation-loading" role="status"><SpinnerGap className="booking-confirmation-spinner" size={25} />Đang tạo phiên thanh toán an toàn…</div> : null}
       {error ? <div className="booking-confirmation-error" role="alert"><p>{error}</p><button type="button" onClick={() => setAttempt(value => value + 1)}>Kiểm tra và thử lại</button></div> : null}
       {checkout ? <>
@@ -65,12 +63,10 @@ export function PaymentModal({ bookingId, onClose, onPaid }: { bookingId: string
           : reconciliation ? <div className="payment-outcome" role="status"><WarningCircle size={48} /><h3>Giao dịch cần đối soát</h3><p>Chưa thể xác nhận kết quả. Không thanh toán lại để tránh trùng giao dịch.</p></div>
           : failed ? <div className="payment-outcome" role="status"><WarningCircle size={48} /><h3>Thanh toán chưa thành công</h3><p>Giao dịch không thành công hoặc đã bị hủy. Vui lòng kiểm tra lại đơn hàng của bạn.</p></div>
           : remaining === 0 ? <div className="payment-outcome" role="status"><Clock size={48} /><h3>Phiên thanh toán đã hết hạn</h3><p>Vui lòng kiểm tra kết quả trước khi thực hiện giao dịch khác.</p></div>
-          : status && status.status === "Pending" && url ? <>
-            <div className="payment-qr" aria-label="QR mở phiên thanh toán VNPay"><QRCodeSVG value={url} size={248} level="M" marginSize={4} title="Quét bằng camera để mở trang thanh toán VNPay" /></div>
-            <p className="payment-instructions">Quét bằng <strong>camera điện thoại</strong> để mở VNPay và tiếp tục thanh toán.</p>
-            <p className="payment-disclaimer">Đây là QR mở cổng thanh toán, không phải QR chuyển khoản trực tiếp. QR ngân hàng được VNPay cung cấp ở bước tiếp theo.</p>
+          : status && status.status === "Pending" && form ? <>
+            <p className="payment-instructions">Tiếp tục đến SePay để chọn phương thức thanh toán.</p>
             <div className="payment-expiry"><Clock size={17} />Phiên còn {Math.floor(remaining / 60).toString().padStart(2, "0")}:{(remaining % 60).toString().padStart(2, "0")}</div>
-            <a className="payment-open-gateway" href={url} target="_blank" rel="noopener noreferrer">Mở VNPay trên thiết bị này<ArrowSquareOut size={19} /></a>
+            <form action={form.action} method="post">{form.fields.map(field => <input key={field.name} type="hidden" name={field.name} value={field.value} />)}<button className="payment-open-gateway" type="submit">Tiếp tục với SePay</button></form>
           </> : <div className="booking-confirmation-loading" role="status"><SpinnerGap className="booking-confirmation-spinner" size={23} />Đang kiểm tra kết quả với hệ thống…</div>}
         {statusError ? <p className="booking-confirmation-error" role="alert">{statusError}</p> : null}
         {!paid ? <button className="payment-check-status" type="button" disabled={checking} onClick={refresh}>{checking ? "Đang kiểm tra…" : "Tôi đã thanh toán · Kiểm tra trạng thái"}</button> : null}
