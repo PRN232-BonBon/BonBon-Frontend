@@ -36,6 +36,37 @@ export function getMyBookings(session: AuthSession) {
   return api<CustomerBooking[]>("/bookings/mine", session);
 }
 
+// ---------------------------------------------------------------------------
+// Hồ sơ tài khoản
+// ---------------------------------------------------------------------------
+
+export interface AccountProfile {
+  accountId: string;
+  email: string;
+  fullName: string;
+  displayName: string | null;
+  phone: string | null;
+  status: string;
+  createdAt: string;
+  roles: string[];
+  /** Tài khoản Google-only không có mật khẩu local. */
+  hasPassword: boolean;
+}
+
+export function getProfile(session: AuthSession) {
+  return api<AccountProfile>("/auth/profile", session);
+}
+
+export function updateProfile(
+  session: AuthSession,
+  payload: { displayName: string | null; phone: string | null },
+) {
+  return api<AccountProfile>("/auth/profile", session, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function changePassword(session: AuthSession, currentPassword: string, newPassword: string) {
   return api<void>("/auth/change-password", session, {
     method: "POST",

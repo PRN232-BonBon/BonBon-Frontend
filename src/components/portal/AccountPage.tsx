@@ -1,25 +1,103 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Camera, CheckCircle, IdentificationCard, PencilSimple, UploadSimple } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
+import { readUserValue, subscribeUserStore, writeUserValue } from "../../auth/user-store";
+import { getMyBookings, getProfile, updateProfile, type AccountProfile } from "../../portal/portal-api";
+
+const LICENSE_KEY = "license.preview";
+const COMPLETED_STATUSES = new Set(["Completed"]);
 
 export function AccountPage() {
   const { session } = useAuth();
-  const [editing, setEditing] = useState(false);
-  const [licenseImage, setLicenseImage] = useState<string | null>(() => localStorage.getItem("bonbon.license.preview"));
-  const fileRef = useRef<HTMLInputElement>(null);
-  const joined = useMemo(() => new Intl.DateTimeFormat("vi-VN", { month: "2-digit", year: "numeric" }).format(new Date()), []);
-  const account = session?.account;
+  const accountId = session?.account.accountId;
 
-  const onLicense = (file?: File) => {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  const [profile, setProfile] = useState<AccountProfile | null>(null);
+  const [form, setForm] = useState({ fullName: "", displayName: "", phone: "" });
+  const [completedTrips, setCompletedTrips] = useState<number | null>(null);
+
+  const [licenseImage, setLicenseImage] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // Đọc lại dữ liệu GPLX khi tài khoản đổi (namespace theo accountId).
+  useEffect(() => {
+    setLicenseImage(readUserValue<string | null>(LICENSE_KEY, null));
+    return subscribeUserStore(() => {
+      setLicenseImage(readUserValue<string | null>(LICENSE_KEY, null));
+    });
+  }, [accountId]);
+
+  // Nạp hồ sơ thật từ server: ngày tham gia, số điện thoại, có mật khẩu hay không.
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    getProfile(session)
+      .then((data) => {
+        if (cancelled) return;
+        setProfile(data);
+        setForm({
+          fullName: data.fullName,
+          displayName: data.displayName ?? "",
+          phone: data.phone ?? "",
+        });
+      })
+      .catch(() => { if (!cancelled) setProfile(null); });
+    return () => { cancelled = true; };
+  }, [session]);
+
+  // Số chuyến hoàn thành lấy từ dữ liệu booking thật, không hardcode.
+  useEffect(() => {
+    if (!session) { setCompletedTrips(null); return; }
+    let cancelled = false;
+    getMyBookings(session)
+      .then((bookings) => {
+        if (cancelled) return;
+        setCompletedTrips(bookings.filter((booking) => COMPLETED_STATUSES.has(booking.status)).length);
+      })
+      .catch(() => { if (!cancelled) setCompletedTrips(null); });
+    return () => { cancelled = true; };
+  }, [session]);
+
+  const joined = useMemo(() => {
+    const createdAt = profile?.createdAt;
+    if (!createdAt) return null;
+    return new Intl.DateTimeFormat("vi-VN", { month: "2-digit", year: "numeric" }).format(new Date(createdAt));
+  }, [profile?.createdAt]);
+
+  const onLicense = useCallback((file?: File) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
       const value = String(reader.result);
-      localStorage.setItem("bonbon.license.preview", value);
+      writeUserValue(LICENSE_KEY, value);
       setLicenseImage(value);
     };
     reader.readAsDataURL(file);
+  }, []);
+
+  const save = async () => {
+    if (!session) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      const updated = await updateProfile(session, {
+        displayName: form.displayName.trim() || null,
+        phone: form.phone.trim() || null,
+      });
+      setProfile(updated);
+      setEditing(false);
+      setMessage({ type: "ok", text: "Đã lưu thông tin tài khoản." });
+    } catch (error) {
+      setMessage({ type: "error", text: error instanceof Error ? error.message : "Không thể lưu thông tin." });
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const account = session?.account;
 
   return (
     <>
@@ -27,21 +105,24 @@ export function AccountPage() {
       <article className="portal-card account-card">
         <div className="card-heading">
           <div><h2>Thông tin tài khoản</h2><p>Quản lý thông tin để bảo mật tài khoản của bạn.</p></div>
-          <button className="icon-text-button" type="button" onClick={() => setEditing((v) => !v)}><PencilSimple size={18} /> {editing ? "Hoàn tất" : "Chỉnh sửa"}</button>
+          {editing
+            ? <button className="icon-text-button" type="button" onClick={save} disabled={saving}>{saving ? "Đang lưu..." : "Lưu thay đổi"}</button>
+            : <button className="icon-text-button" type="button" onClick={() => { setEditing(true); setMessage(null); }}><PencilSimple size={18} /> Chỉnh sửa</button>}
         </div>
+        {message ? <div className={`form-message ${message.type}`} role="alert">{message.type === "ok" ? <CheckCircle weight="fill" /> : null}{message.text}</div> : null}
         <div className="account-grid">
           <div className="profile-summary">
             <div className="profile-avatar"><span>{(account?.fullName || "BB").slice(0, 2).toUpperCase()}</span><button type="button" aria-label="Đổi ảnh đại diện"><Camera size={17} /></button></div>
             <h3>{account?.displayName || account?.fullName}</h3>
-            <p>Thành viên từ {joined}</p>
-            <div className="trip-stat"><strong>0</strong><span>Chuyến đã hoàn thành</span></div>
+            {joined ? <p>Thành viên từ {joined}</p> : null}
+            <div className="trip-stat"><strong>{completedTrips ?? "—"}</strong><span>Chuyến đã hoàn thành</span></div>
           </div>
           <div className="profile-fields">
-            <label><span>Họ và tên</span><input disabled={!editing} defaultValue={account?.fullName} /></label>
-            <label><span>Ngày sinh</span><input disabled={!editing} type="date" /></label>
-            <label><span>Giới tính</span><select disabled={!editing} defaultValue=""><option value="">Chưa cập nhật</option><option>Nam</option><option>Nữ</option><option>Khác</option></select></label>
-            <label><span>Số điện thoại</span><div className="verified-field"><input disabled={!editing} placeholder="Chưa cập nhật" /><small>Chưa xác thực</small></div></label>
-            <label><span>Email</span><div className="verified-field"><input disabled value={account?.email} /><small className="verified"><CheckCircle weight="fill" /> Đã xác thực</small></div></label>
+            <label><span>Họ và tên</span><input disabled value={account?.fullName} /></label>
+            <label><span>Tên hiển thị</span><input disabled={!editing} value={form.displayName} placeholder="Chưa cập nhật" onChange={(event) => setForm({ ...form, displayName: event.target.value })} /></label>
+            <label><span>Số điện thoại</span><div className="verified-field"><input disabled={!editing} value={form.phone} placeholder="Chưa cập nhật" onChange={(event) => setForm({ ...form, phone: event.target.value })} />{form.phone ? <small>Đã cập nhật</small> : <small>Chưa cập nhật</small>}</div></label>
+            <label><span>Email</span><div className="verified-field"><input disabled value={account?.email} /><small className="verified"><CheckCircle weight="fill" /> Đã đăng ký</small></div></label>
+            <label><span>Phương thức đăng nhập</span><div className="verified-field"><input disabled value={profile?.hasPassword ? "Email và mật khẩu" : "Google"} /><small>{profile?.hasPassword ? "Có thể đổi mật khẩu" : "Tài khoản Google — chưa có mật khẩu"}</small></div></label>
           </div>
         </div>
       </article>
