@@ -1,6 +1,4 @@
 import type { ReactNode } from "react";
-// import { Car, Heart, LockKey, MapPin, SignOut, UserCircle, ClipboardText } from "@phosphor-icons/react";
-// import { Car, Heart, LockKey, MapPin, MapTrifold, SignOut, UserCircle } from "@phosphor-icons/react";
 import {
   Car,
   Heart,
@@ -10,6 +8,8 @@ import {
   SignOut,
   UserCircle,
   ClipboardText,
+  CarProfile,
+  CalendarBlank,
 } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
 
@@ -18,6 +18,8 @@ const nav = [
   { href: "/my-favorites", label: "Xe yêu thích", icon: Heart },
   { href: "/my-trips", label: "Chuyến của tôi", icon: Car },
   { href: "/my-addresses", label: "Địa chỉ của tôi", icon: MapPin },
+  { href: "/owner/cars", label: "Danh sách xe", icon: CarProfile },
+  { href: "/owner/calendar", label: "Lịch xe", icon: CalendarBlank },
   { href: "/owner/tracking", label: "Theo dõi chuyến cho thuê", icon: MapTrifold },
   { href: "/change-password", label: "Đổi mật khẩu", icon: LockKey },
 ];
@@ -34,12 +36,12 @@ export function PortalLayout({ path, children }: { path: string; children: React
           </div>
           <nav aria-label="Tài khoản">
             {nav.map(({ href, label, icon: Icon }) => (
-              <a key={href} href={href} className={path === href ? "active" : ""}>
-                <Icon size={22} weight={path === href ? "fill" : "regular"} />
+              <a key={href} href={href} className={path === href || (path === "/owner/gps" && href === "/owner/tracking") ? "active" : ""}>
+                <Icon size={22} weight={path === href || (path === "/owner/gps" && href === "/owner/tracking") ? "fill" : "regular"} />
                 {label}
               </a>
             ))}
-            {session?.account.roles.includes("VehicleOwner") ? <a href="/owner/bookings" className={path === "/owner/bookings" ? "active" : ""}>
+            {session?.account.roles?.includes("VehicleOwner") ? <a href="/owner/bookings" className={path === "/owner/bookings" ? "active" : ""}>
               <ClipboardText size={22} weight={path === "/owner/bookings" ? "fill" : "regular"} />
               Yêu cầu thuê xe
             </a> : null}

@@ -33,24 +33,6 @@ export interface TrackingSnapshot {
   arrived: boolean;
 }
 
-/** `GET /api/bookings/owner` */
-export interface OwnerBooking {
-  bookingId: string;
-  vehicleId: string;
-  vehicleName: string;
-  plateNumber: string;
-  coverImageUrl: string | null;
-  customerName: string;
-  customerPhone: string | null;
-  rentalType: string;
-  startAt: string;
-  endAt: string;
-  totalAmount: number;
-  currency: string;
-  status: string;
-  createdAt: string;
-}
-
 /** `POST /api/bookings/{id}/tracking/positions` — điện thoại/trình duyệt người thuê gửi GPS. */
 export interface ReportPositionPayload {
   latitude: number;
@@ -132,10 +114,6 @@ async function request<T>(path: string, session: AuthSession, init?: RequestInit
 
 function bookingPath(bookingId: string, suffix: string) {
   return `/bookings/${encodeURIComponent(bookingId)}/tracking/${suffix}`;
-}
-
-export function getOwnerBookings(session: AuthSession, signal?: AbortSignal) {
-  return request<OwnerBooking[]>("/bookings/owner", session, { signal });
 }
 
 export function getTrackingStatus(bookingId: string, session: AuthSession, signal?: AbortSignal) {

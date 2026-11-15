@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowClockwise, Check, X } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
 import { bookingStatusLabel } from "../../booking/booking-status";
 import { formatBookingDate, formatBookingMoney } from "../../booking/booking-display";
 import { approveBooking, getOwnerBookings, rejectBooking, type OwnerBooking } from "../../owner/owner-api";
+import { canDecideOwnerBooking } from "../../owner/owner-portal-model";
 import "./owner-bookings.css";
 
 export function OwnerBookingsPage() {
@@ -14,40 +15,53 @@ export function OwnerBookingsPage() {
   const [busyId, setBusyId] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const sending = useRef(false);
+  const requestRef = useRef<AbortController | null>(null);
+  const selectedId = new URLSearchParams(window.location.search).get("bookingId");
 
   const load = useCallback(async (signal?: AbortSignal) => {
     if (!session) { setLoading(false); return; }
+    requestRef.current?.abort();
+    const controller = new AbortController();
+    requestRef.current = controller;
+    const requestSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
     setRefreshing(true);
     try {
-      const bookings = await getOwnerBookings(session, signal);
-      if (!signal?.aborted) { setItems(bookings); setError(""); }
+      const bookings = await getOwnerBookings(session, requestSignal);
+      if (!requestSignal.aborted) { setItems(bookings); setError(""); }
     } catch (reason) {
-      if (!signal?.aborted) setError(reason instanceof Error ? reason.message : "Không thể tải yêu cầu thuê xe.");
+      if (!requestSignal.aborted) setError(reason instanceof Error ? reason.message : "Không thể tải yêu cầu thuê xe.");
     } finally {
-      if (!signal?.aborted) { setLoading(false); setRefreshing(false); }
+      if (!requestSignal.aborted) { setLoading(false); setRefreshing(false); }
     }
   }, [session]);
 
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
-    return () => controller.abort();
+    return () => { controller.abort(); requestRef.current?.abort(); };
   }, [load]);
 
+  useEffect(() => {
+    if (selectedId && !loading) document.getElementById(`owner-booking-${selectedId}`)?.scrollIntoView({ block: "center" });
+  }, [selectedId, loading]);
+
   const decide = async (item: OwnerBooking, decision: "approve" | "reject") => {
-    if (!session || busyId) return;
+    if (!session || sending.current || !canDecideOwnerBooking(item)) return;
     const action = decision === "approve" ? "duyệt" : "từ chối";
     if (decision === "reject" && !window.confirm(`Bạn có chắc muốn từ chối yêu cầu thuê ${item.vehicleName}?`)) return;
+    sending.current = true;
     setBusyId(item.bookingId); setError(""); setNotice("");
     try {
       const result = decision === "approve"
         ? await approveBooking(session, item.bookingId)
         : await rejectBooking(session, item.bookingId);
+      if (result.bookingId !== item.bookingId || result.status !== (decision === "approve" ? "AwaitingPayment" : "Rejected")) throw new Error("Trạng thái phản hồi không khớp. Vui lòng cập nhật lại danh sách đơn.");
       setNotice(result.isReplay ? `Yêu cầu này đã được ${action} trước đó.` : `Đã ${action} yêu cầu thuê xe.`);
       await load();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : `Không thể ${action} yêu cầu thuê xe.`);
-    } finally { setBusyId(""); }
+    } finally { sending.current = false; setBusyId(""); }
   };
 
   return <>
@@ -60,7 +74,7 @@ export function OwnerBookingsPage() {
     <article className="portal-card owner-bookings-card">
       {loading ? <div className="portal-loading" role="status">Đang tải yêu cầu…</div>
         : items.length === 0 ? <div className="owner-bookings-empty"><strong>Chưa có yêu cầu thuê xe</strong><p>Khi khách đặt xe của bạn, yêu cầu sẽ xuất hiện tại đây.</p></div>
-        : <div className="owner-booking-list">{items.map(item => <article className="owner-booking-item" key={item.bookingId}>
+        : <div className="owner-booking-list">{items.map(item => <article className={`owner-booking-item${selectedId === item.bookingId ? " is-selected" : ""}`} id={`owner-booking-${item.bookingId}`} key={item.bookingId}>
           {item.coverImageUrl ? <img className="owner-booking-image" src={item.coverImageUrl} alt={item.vehicleName} /> : <div className="owner-booking-image owner-booking-placeholder">BonBon</div>}
           <div className="owner-booking-details">
             <div className="owner-booking-title"><h2>{item.vehicleName}</h2><span className={`booking-status status-${item.status.toLowerCase()}`}>{bookingStatusLabel(item.status)}</span></div>
@@ -71,7 +85,7 @@ export function OwnerBookingsPage() {
           </div>
           <div className="owner-booking-actions">
             <strong>{formatBookingMoney(item.totalAmount)}</strong>
-            {item.status === "PendingApproval" ? <div className="owner-booking-decision">
+            {canDecideOwnerBooking(item) ? <div className="owner-booking-decision">
               <button className="owner-approve" type="button" disabled={!!busyId} onClick={() => void decide(item, "approve")}><Check size={17} />{busyId === item.bookingId ? "Đang xử lý…" : "Duyệt"}</button>
               <button className="owner-reject" type="button" disabled={!!busyId} onClick={() => void decide(item, "reject")}><X size={17} />Từ chối</button>
             </div> : null}

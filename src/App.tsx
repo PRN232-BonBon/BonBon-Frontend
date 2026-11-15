@@ -17,6 +17,7 @@ import { OwnerLandingPage } from "./components/owner/OwnerLandingPage";
 import { OwnerRegisterPage } from "./components/owner/OwnerRegisterPage";
 import { OwnerBookingsPage } from "./components/owner/OwnerBookingsPage";
 import { OwnerTrackingPage } from "./components/owner/OwnerTrackingPage";
+import { OwnerPortalPage } from "./components/owner/OwnerPortalPage";
 import { useAuth } from "./auth/AuthContext";
 import type { ComponentType } from "react";
 
@@ -29,6 +30,9 @@ const portalPages: Record<string, ComponentType> = {
   "/payment/result": PaymentResultPage,
   "/owner/bookings": OwnerBookingsPage,
   "/owner/tracking": OwnerTrackingPage,
+  "/owner/gps": OwnerTrackingPage,
+  "/owner/cars": () => <OwnerPortalPage view="cars" />,
+  "/owner/calendar": () => <OwnerPortalPage view="calendar" />,
 };
 
 export default function App() {

@@ -9,10 +9,10 @@ import {
   getTrackingStatus,
   trackingErrorMessage,
   type GeoPoint,
-  type OwnerBooking,
   type TrackingSnapshot,
   type TrackingStatus,
 } from "../../tracking/tracking-api";
+import type { OwnerBooking } from "../../owner/owner-api";
 import {
   isMeetingPointsConfigurable,
   meetingPointsLockReason,

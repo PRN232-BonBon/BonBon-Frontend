@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { CircleNotch, Flag, WifiSlash } from "@phosphor-icons/react";
 import { formatBookingDate } from "../../booking/booking-display";
-import type { OwnerBooking, TrackingSnapshot, TrackingStatus } from "../../tracking/tracking-api";
+import type { TrackingSnapshot, TrackingStatus } from "../../tracking/tracking-api";
+import type { OwnerBooking } from "../../owner/owner-api";
 import {
   estimateEtaSeconds,
   formatDistance,
