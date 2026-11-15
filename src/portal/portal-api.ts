@@ -1,6 +1,10 @@
 import type { AuthSession } from "../auth/auth-api";
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
+const API_BASE_URL = (import.meta.env?.VITE_API_URL || "/api").replace(/\/$/, "");
+
+export function resolveBookingImage(url: string | null) {
+  return url?.startsWith("/api/") ? `${API_BASE_URL.replace(/\/api$/, "")}${url}` : url;
+}
 
 export interface CustomerBooking {
   bookingId: string;
@@ -14,6 +18,17 @@ export interface CustomerBooking {
   currency: string;
   status: string;
   createdAt: string;
+}
+
+export interface BookingDetail {
+  bookingId: string; status: string; rentalType: "Hourly" | "Daily"; startAt: string; endAt: string;
+  billableUnits: number; unitPrice: number; baseRentalAmount: number; weeklyDiscountPercent: number;
+  discountAmount: number; quotedRentalAmount: number; includedMileageKm: number | null;
+  overageFeePerKm: number | null; rentalTerms: string | null; currency: string; createdAt: string;
+  vehicle: { vehicleId: string; brand: string; model: string; plateNumber: string; coverImageUrl: string | null;
+    pickupAddress: string; seats: number; transmission: string; fuelType: string };
+  customer: { customerId: string; fullName: string; email: string; phone: string | null };
+  owner: { ownerId: string; fullName: string; email: string; phone: string | null };
 }
 
 async function api<T>(path: string, session: AuthSession, init?: RequestInit) {
@@ -32,8 +47,14 @@ async function api<T>(path: string, session: AuthSession, init?: RequestInit) {
   return response.status === 204 ? undefined as T : response.json() as Promise<T>;
 }
 
-export function getMyBookings(session: AuthSession) {
-  return api<CustomerBooking[]>("/bookings/mine", session);
+export async function getMyBookings(session: AuthSession, signal?: AbortSignal) {
+  const items = await api<CustomerBooking[]>("/bookings/mine", session, { signal });
+  return items.map(item => ({ ...item, coverImageUrl: resolveBookingImage(item.coverImageUrl) }));
+}
+
+export async function getBookingDetail(bookingId: string, session: AuthSession, signal?: AbortSignal) {
+  const detail = await api<BookingDetail>(`/bookings/${encodeURIComponent(bookingId)}`, session, { signal });
+  return { ...detail, vehicle: { ...detail.vehicle, coverImageUrl: resolveBookingImage(detail.vehicle.coverImageUrl) } };
 }
 
 // ---------------------------------------------------------------------------

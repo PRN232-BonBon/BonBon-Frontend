@@ -1,0 +1,23 @@
+.trip-refresh { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #dfded9; border-radius: 7px; padding: 9px 12px; background: white; cursor: pointer; font-size: 12px; font-weight: 650; }
+.trip-refresh:disabled { color: #757575; cursor: wait; }
+.trip-item { grid-template-columns: 174px minmax(0, 1fr) 164px; cursor: pointer; transition: border-color 160ms ease, background 160ms ease; }
+.trip-item:hover { border-color: #d2b45e; background: #fffefb; }
+.trip-image-button { border: 0; border-radius: 8px; padding: 0; background: #f7f7f4; cursor: pointer; overflow: hidden; }
+.trip-image-button img, .trip-image-button .trip-image-placeholder { width: 174px; height: 140px; border-radius: 8px; object-fit: cover; }
+.trip-main h3 button { border: 0; padding: 0; background: transparent; color: #242424; cursor: pointer; text-align: left; font-size: 16px; font-weight: 800; }
+.trip-main h3 button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.trip-top { flex-wrap: wrap; gap: 8px; }
+.booking-status.status-awaitingpayment { background: #fff0b9; color: #775200; }
+.booking-status.status-confirmed, .booking-status.status-readyforpickup { background: #eaf5ec; color: #2b693e; }
+.booking-status.status-pendingapproval { background: #f0f0ed; color: #60605b; }
+.booking-status.status-rejected, .booking-status.status-cancelled { background: #f9eeeb; color: #8b4339; }
+.trip-main p.trip-end { margin: 3px 0 0 24px; }
+.trip-main p.trip-waiting-hint { margin-top: 10px; color: #757575; font-size: 11px; }
+.trip-actions { display: grid; justify-items: end; gap: 12px; align-self: stretch; align-content: center; }
+.trip-actions .trip-price { align-self: auto; color: #946700; font-size: 18px; font-variant-numeric: tabular-nums; }
+.trip-pay { display: flex; width: 156px; min-height: 41px; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--accent); border-radius: 7px; padding: 9px 11px; background: var(--accent); color: #241b04; cursor: pointer; font-size: 13px; font-weight: 750; }
+.trip-pay:hover:not(:disabled) { border-color: #dda000; background: #dda000; }
+.trip-pay:disabled { border-color: #e2e2df; background: #ededeb; color: #797974; cursor: not-allowed; }
+.trip-view-detail { display: inline-flex; align-items: center; gap: 3px; border: 0; padding: 3px 0; background: transparent; color: #62625e; cursor: pointer; font-size: 12px; font-weight: 650; }
+.trip-view-detail:hover { color: #242424; }
+@media (prefers-reduced-motion: reduce) { .trip-item { transition: none; } }

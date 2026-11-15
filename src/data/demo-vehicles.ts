@@ -23,6 +23,13 @@ export interface VehicleListing {
   depositFree: boolean;
   deliveryAvailable: boolean;
   instantBook: boolean;
+  owner?: { ownerId: string; fullName: string; email?: string; phone?: string | null };
+  weeklyDiscountEnabled?: boolean;
+  weeklyDiscountPercent?: number | null;
+  mileageLimitEnabled?: boolean;
+  dailyMileageLimitKm?: number | null;
+  overageFeePerKm?: number | null;
+  rentalTerms?: string | null;
 }
 
 // Temporary presentation data kept in sync with the PostgreSQL demo catalog.

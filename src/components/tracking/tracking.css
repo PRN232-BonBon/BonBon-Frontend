@@ -1,0 +1,119 @@
+/* Tracking — bản đồ vị trí xe cho chủ xe, dùng chung ngôn ngữ thị giác với portal. */
+.tracking-page { display: grid; gap: 22px; }
+
+.tracking-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.tracking-head h1 { margin: 8px 0 0; font-size: 1.8rem; font-weight: 820; letter-spacing: -.035em; }
+.tracking-head p { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 8px 0 0; color: #757575; font-size: .86rem; }
+.tracking-plate { color: #2c2c2a; font-weight: 800; }
+.tracking-back { display: inline-flex; align-items: center; gap: 6px; border: 0; padding: 0; background: transparent; color: #62625e; cursor: pointer; font-size: .8rem; font-weight: 700; }
+.tracking-back:hover { color: #111; }
+
+.tracking-layout { display: grid; grid-template-columns: minmax(0, 1fr) 338px; gap: 22px; align-items: start; }
+.tracking-layout.is-single { grid-template-columns: minmax(0, 1fr); }
+
+.tracking-map-card { position: relative; overflow: hidden; border: 1px solid #e8e7e1; border-radius: 16px; background: #f1f2ee; }
+.tracking-map { width: 100%; height: 560px; }
+.tracking-map.is-picking { cursor: crosshair; }
+.tracking-map-toolbar { position: absolute; top: 12px; right: 12px; z-index: 500; }
+.tracking-map-toolbar button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #deddd7; border-radius: 999px; padding: 8px 13px; background: rgb(255 255 255 / .94); color: #4a4a46; cursor: pointer; font-size: .76rem; font-weight: 750; box-shadow: 0 6px 16px rgb(0 0 0 / .12); }
+.tracking-map-toolbar button.active { border-color: var(--accent); color: #7a5500; }
+.tracking-map-toolbar button:disabled { cursor: not-allowed; opacity: .5; }
+.tracking-pick-hint { position: absolute; bottom: 12px; left: 12px; z-index: 500; margin: 0; border-radius: 9px; padding: 9px 13px; background: #1c1b16; color: #ffe8a3; font-size: .78rem; font-weight: 650; }
+
+.tracking-panel { display: grid; gap: 16px; align-content: start; }
+.tracking-panel-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tracking-live { display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; padding: 5px 10px; background: #f0f0ec; color: #6b6b66; font-size: .7rem; font-weight: 800; }
+.tracking-live-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.tracking-live-connected { background: #eaf5ec; color: #2b693e; }
+.tracking-live-connected .tracking-live-dot { animation: tracking-pulse 1.8s ease-in-out infinite; }
+.tracking-live-connecting { background: #fff3c8; color: #8a6200; }
+.tracking-live-disconnected { background: #f9eeeb; color: #8b4339; }
+.tracking-updated { color: #8a8a85; font-size: .72rem; }
+
+.tracking-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; border: 1px solid #efeee9; border-radius: 12px; padding: 13px 14px; background: #fffdf6; }
+.tracking-stats span { display: block; color: #8a8a85; font-size: .68rem; }
+.tracking-stats strong { display: block; margin-top: 3px; font-size: .92rem; font-variant-numeric: tabular-nums; }
+
+.tracking-facts { display: grid; gap: 9px; margin: 0; }
+.tracking-facts > div { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.tracking-facts dt { color: #8a8a85; font-size: .74rem; white-space: nowrap; }
+.tracking-facts dd { margin: 0; color: #2c2c2a; font-size: .78rem; font-weight: 650; text-align: right; }
+
+.tracking-arrived { display: flex; align-items: center; gap: 8px; margin: 0; border-radius: 10px; padding: 10px 12px; background: #edf9f0; color: #277a42; font-size: .78rem; font-weight: 700; }
+.tracking-waiting { display: flex; align-items: center; gap: 8px; margin: 0; border-radius: 10px; padding: 10px 12px; background: #fff9e5; color: #6b5411; font-size: .76rem; }
+.tracking-realtime-error { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; margin: 0; border-radius: 10px; padding: 9px 11px; background: #fff0ee; color: #a94136; font-size: .74rem; }
+.tracking-realtime-error button { border: 0; padding: 0; background: transparent; color: inherit; cursor: pointer; font-size: .74rem; font-weight: 800; text-decoration: underline; }
+.tracking-note { margin: 0; color: #96968f; font-size: .7rem; line-height: 1.5; }
+
+.tracking-gate { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; align-items: center; gap: 18px; }
+.tracking-gate-icon { display: grid; width: 54px; height: 54px; place-items: center; border-radius: 14px; background: #fff1bd; color: #9d7000; }
+.tracking-gate h2 { margin: 0; font-size: 1.1rem; }
+.tracking-gate p { margin: 7px 0 0; color: #757575; font-size: .86rem; line-height: 1.55; }
+.tracking-gate .tracking-gate-meta { color: #9a9a95; font-size: .74rem; }
+
+.tracking-list-note { margin: 0 0 16px; color: #7d7d7d; font-size: .84rem; }
+.trip-actions .trip-pay.is-muted { border-color: #e2e2df; background: #ededeb; color: #797974; }
+
+/* Người thuê chia sẻ GPS ngay trên web (POST tracking/positions). */
+.share-location { display: grid; width: 156px; gap: 5px; justify-items: end; }
+.share-location button { display: flex; width: 100%; min-height: 41px; align-items: center; justify-content: center; gap: 7px; border: 1px solid #dcdcd7; border-radius: 7px; padding: 9px 11px; background: #fff; color: #353532; cursor: pointer; font-size: 12px; font-weight: 750; }
+.share-location button:hover { border-color: #c9a245; background: #fffbec; }
+.share-location.is-active button { border-color: #d9a400; background: #fff3c8; color: #6d4d00; }
+.share-location-status { color: #7a7a75; font-size: 10.5px; line-height: 1.35; text-align: right; }
+.share-location-status.is-error { color: #b43c31; }
+.share-location-unsupported { max-width: 156px; margin: 0; color: #8a8a85; font-size: 10.5px; line-height: 1.35; text-align: right; }
+
+.tracking-config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.tracking-point { display: grid; gap: 10px; border: 1px solid #efeee9; border-radius: 12px; padding: 15px; background: #fffdf8; transition: border-color 160ms ease, box-shadow 160ms ease; }
+.tracking-point.picking { border-color: var(--accent); box-shadow: 0 0 0 3px rgb(244 176 0 / .18); }
+.tracking-point header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tracking-point h3 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: .9rem; }
+.tracking-point p { margin: 0; color: #8a8a85; font-size: .74rem; }
+.tracking-point-pick { display: inline-flex; align-items: center; gap: 5px; border: 1px solid #deddd7; border-radius: 7px; padding: 6px 10px; background: #fff; color: #4a4a46; cursor: pointer; font-size: .72rem; font-weight: 750; }
+.tracking-point-pick:hover { border-color: var(--accent); color: #7a5500; }
+.tracking-point-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tracking-point-fields label { display: grid; gap: 5px; color: #7c7c76; font-size: .7rem; font-weight: 700; }
+.tracking-point-fields input { width: 100%; min-height: 38px; border: 1px solid #dcdcd7; border-radius: 8px; padding: 0 10px; background: #fff; color: #222; font-size: .8rem; font-variant-numeric: tabular-nums; }
+.tracking-config-actions { display: flex; align-items: center; justify-content: flex-end; gap: 14px; margin-top: 18px; border-top: 1px solid #efece2; padding-top: 16px; }
+.tracking-config-actions .form-message { margin: 0 auto 0 0; }
+.tracking-config.is-locked { display: grid; grid-template-columns: 54px minmax(0, 1fr); align-items: center; gap: 16px; }
+.tracking-config.is-locked h2 { margin: 0; font-size: 1.05rem; }
+.tracking-config.is-locked p { margin: 6px 0 0; color: #757575; font-size: .84rem; line-height: 1.55; }
+
+.tracking-spin { animation: tracking-spin 900ms linear infinite; }
+
+/* Leaflet giữ trong khung portal, không đè lên dropdown của header. */
+.tracking-map-card .leaflet-container { z-index: 1; background: #e9ece6; font-family: inherit; }
+.bb-map-icon { border: 0; background: transparent; }
+.bb-pin { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; box-shadow: 0 6px 14px rgb(0 0 0 / .22); }
+.bb-pin-vehicle { border: 2px solid #fff; background: #17150f; }
+.bb-pin-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
+.bb-pin-destination { border: 2px solid #fff; background: var(--accent); color: #241b04; }
+.bb-pin-draft { border: 2px dashed #b17900; background: #fff; color: #946700; font-size: .72rem; font-weight: 850; }
+
+@keyframes tracking-spin { to { transform: rotate(360deg); } }
+@keyframes tracking-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+@media (max-width: 1280px) {
+  .tracking-layout { grid-template-columns: minmax(0, 1fr); }
+  .tracking-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 32px; }
+  .tracking-map { height: 460px; }
+}
+
+@media (max-width: 900px) {
+  .share-location { width: 100%; justify-items: stretch; }
+  .share-location-status { text-align: left; }
+  .tracking-panel { grid-template-columns: minmax(0, 1fr); }
+  .tracking-config-grid { grid-template-columns: minmax(0, 1fr); }
+  .tracking-gate { grid-template-columns: 54px minmax(0, 1fr); }
+  .tracking-gate > button { grid-column: 1 / -1; justify-self: start; }
+}
+
+@media (max-width: 560px) {
+  .share-location { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tracking-live-connected .tracking-live-dot { animation: none; }
+  .tracking-point { transition: none; }
+}

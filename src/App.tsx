@@ -11,9 +11,13 @@ import { FavoritesPage } from "./components/portal/FavoritesPage";
 import { TripsPage } from "./components/portal/TripsPage";
 import { AddressesPage } from "./components/portal/AddressesPage";
 import { ChangePasswordPage } from "./components/portal/ChangePasswordPage";
+import { PaymentResultPage } from "./components/portal/PaymentResultPage";
 import { VehicleListPage } from "./components/vehicles/VehicleListPage";
 import { OwnerLandingPage } from "./components/owner/OwnerLandingPage";
 import { OwnerRegisterPage } from "./components/owner/OwnerRegisterPage";
+import { OwnerBookingsPage } from "./components/owner/OwnerBookingsPage";
+import { OwnerTrackingPage } from "./components/owner/OwnerTrackingPage";
+import { OwnerPortalPage } from "./components/owner/OwnerPortalPage";
 import { useAuth } from "./auth/AuthContext";
 import type { ComponentType } from "react";
 
@@ -23,6 +27,12 @@ const portalPages: Record<string, ComponentType> = {
   "/my-trips": TripsPage,
   "/my-addresses": AddressesPage,
   "/change-password": ChangePasswordPage,
+  "/payment/result": PaymentResultPage,
+  "/owner/bookings": OwnerBookingsPage,
+  "/owner/tracking": OwnerTrackingPage,
+  "/owner/gps": OwnerTrackingPage,
+  "/owner/cars": () => <OwnerPortalPage view="cars" />,
+  "/owner/calendar": () => <OwnerPortalPage view="calendar" />,
 };
 
 export default function App() {

@@ -222,7 +222,7 @@ export function OwnerRegisterPage() {
           <span><CheckCircle size={54} weight="fill" /></span>
           <h1>Đã gửi đăng ký xe</h1>
           <p>BonBon đã nhận thông tin {draft.brand} {draft.model}. Hồ sơ đang chờ kiểm tra trước khi xe được hiển thị.</p>
-          <div><a className="owner-primary-button" href="/cars">Xem danh sách xe</a><a className="owner-secondary-button" href="/">Về trang chủ</a></div>
+          <div><a className="owner-primary-button" href="/owner/cars">Xem xe của tôi</a><a className="owner-secondary-button" href="/">Về trang chủ</a></div>
         </motion.section>
       </main>
     );

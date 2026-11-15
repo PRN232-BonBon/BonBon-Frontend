@@ -1,0 +1,35 @@
+.owner-bookings-heading { align-items: center; }
+.owner-bookings-heading h1 { margin: 0; }
+.owner-bookings-heading p { margin: 7px 0 0; color: #757575; }
+.owner-bookings-card { padding: 8px 24px; }
+.owner-booking-list { display: grid; }
+.owner-booking-item { display: grid; grid-template-columns: 150px minmax(0, 1fr) 150px; gap: 20px; align-items: center; padding: 20px 0; border-bottom: 1px solid #eeede8; }
+.owner-booking-item:last-child { border-bottom: 0; }
+.owner-booking-image { width: 150px; height: 120px; border-radius: 9px; object-fit: cover; background: #f5f4f0; }
+.owner-booking-placeholder { display: grid; place-items: center; color: #777; font-weight: 800; }
+.owner-booking-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.owner-booking-title h2 { margin: 0; font-size: 16px; font-weight: 800; }
+.owner-booking-plate { color: #777; font-size: 12px; }
+.owner-booking-details p { margin: 7px 0 0; color: #555; font-size: 12px; }
+.owner-booking-details p strong { color: #222; }
+.owner-booking-actions { display: grid; justify-items: end; gap: 12px; }
+.owner-booking-actions > strong { color: #946700; font-size: 17px; white-space: nowrap; }
+.owner-booking-decision { display: grid; gap: 7px; width: 132px; }
+.owner-booking-decision button { display: inline-flex; min-height: 37px; align-items: center; justify-content: center; gap: 6px; border: 1px solid transparent; border-radius: 7px; padding: 7px 10px; cursor: pointer; font-size: 12px; font-weight: 750; }
+.owner-booking-decision button:disabled { opacity: .6; cursor: wait; }
+.owner-approve { background: #f4b000; color: #241b04; }
+.owner-approve:hover:not(:disabled) { background: #dda000; }
+.owner-reject { border-color: #e2dfd9 !important; background: white; color: #713e37; }
+.owner-reject:hover:not(:disabled) { background: #fbf3f1; }
+.owner-bookings-empty { display: grid; min-height: 280px; align-content: center; justify-items: center; text-align: center; }
+.owner-bookings-empty strong { font-size: 16px; }
+.owner-bookings-empty p { margin: 8px 0 0; color: #757575; font-size: 13px; }
+.owner-booking-notice { margin: 0 0 16px; border-radius: 8px; padding: 11px 14px; background: #eaf5ec; color: #2b693e; font-size: 13px; }
+@media (max-width: 820px) {
+  .owner-booking-item { grid-template-columns: 112px minmax(0, 1fr); gap: 14px; }
+  .owner-booking-image { width: 112px; height: 100px; }
+  .owner-booking-actions { grid-column: 2; display: flex; justify-content: space-between; align-items: center; }
+  .owner-booking-decision { display: flex; width: auto; }
+  .owner-booking-decision button { min-width: 98px; }
+}
+.owner-booking-item.is-selected { outline: 2px solid #dca600; outline-offset: 5px; border-radius: 8px; scroll-margin-block: 100px; }
