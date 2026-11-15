@@ -61,9 +61,9 @@ export function PaymentModal({ bookingId, onClose, onPaid }: { bookingId: string
       {checkout ? <>
         <p className="payment-caption">Tổng tiền thanh toán</p><strong className="payment-amount">{money(checkout.amount)}</strong>
         <p className="payment-reference">Mã giao dịch: {checkout.paymentId}</p>
-        {paid ? <div className="payment-outcome payment-success" role="status"><CheckCircle size={60} weight="duotone" /><h3>Thanh toán thành công</h3><p>Backend đã ghi nhận thanh toán và xác nhận chuyến của bạn.</p></div>
+        {paid ? <div className="payment-outcome payment-success" role="status"><CheckCircle size={60} weight="duotone" /><h3>Thanh toán thành công</h3><p>Chuyến đi của bạn đã được xác nhận. Chúc bạn có một hành trình vui vẻ!</p></div>
           : reconciliation ? <div className="payment-outcome" role="status"><WarningCircle size={48} /><h3>Giao dịch cần đối soát</h3><p>Chưa thể xác nhận kết quả. Không thanh toán lại để tránh trùng giao dịch.</p></div>
-          : failed ? <div className="payment-outcome" role="status"><WarningCircle size={48} /><h3>Thanh toán chưa thành công</h3><p>Giao dịch đã thất bại hoặc đã hủy. Bạn có thể đóng popup và kiểm tra lại đơn hàng.</p></div>
+          : failed ? <div className="payment-outcome" role="status"><WarningCircle size={48} /><h3>Thanh toán chưa thành công</h3><p>Giao dịch không thành công hoặc đã bị hủy. Vui lòng kiểm tra lại đơn hàng của bạn.</p></div>
           : remaining === 0 ? <div className="payment-outcome" role="status"><Clock size={48} /><h3>Phiên thanh toán đã hết hạn</h3><p>Vui lòng kiểm tra kết quả trước khi thực hiện giao dịch khác.</p></div>
           : status && status.status === "Pending" && url ? <>
             <div className="payment-qr" aria-label="QR mở phiên thanh toán VNPay"><QRCodeSVG value={url} size={248} level="M" marginSize={4} title="Quét bằng camera để mở trang thanh toán VNPay" /></div>
@@ -74,7 +74,7 @@ export function PaymentModal({ bookingId, onClose, onPaid }: { bookingId: string
           </> : <div className="booking-confirmation-loading" role="status"><SpinnerGap className="booking-confirmation-spinner" size={23} />Đang kiểm tra kết quả với hệ thống…</div>}
         {statusError ? <p className="booking-confirmation-error" role="alert">{statusError}</p> : null}
         {!paid ? <button className="payment-check-status" type="button" disabled={checking} onClick={refresh}>{checking ? "Đang kiểm tra…" : "Tôi đã thanh toán · Kiểm tra trạng thái"}</button> : null}
-        <p className="payment-security-note"><ShieldCheck size={17} />Chỉ xác nhận thanh toán khi backend nhận kết quả hợp lệ từ VNPay.</p>
+        <p className="payment-security-note"><ShieldCheck size={17} />Chuyến đi sẽ được xác nhận sau khi BonBon nhận được kết quả giao dịch.</p>
       </> : null}
       <button className="payment-close" type="button" onClick={onClose}>{paid ? "Về chuyến của tôi" : "Đóng"}</button>
     </div>

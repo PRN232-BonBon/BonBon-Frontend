@@ -185,7 +185,7 @@ export function OwnerTrackingView({ booking, onBack }: OwnerTrackingViewProps) {
         <article className="portal-card tracking-gate">
           <span className="tracking-gate-icon"><WarningCircle size={26} /></span>
           <div>
-            <h2>Không xem được tracking</h2>
+            <h2>Không thể theo dõi vị trí</h2>
             <p>{blockedMessage}</p>
             <p className="tracking-gate-meta">Mã chuyến {booking.bookingId.slice(0, 8).toUpperCase()}</p>
           </div>
@@ -197,7 +197,7 @@ export function OwnerTrackingView({ booking, onBack }: OwnerTrackingViewProps) {
         <article className="portal-card tracking-gate">
           <span className="tracking-gate-icon"><WarningCircle size={26} /></span>
           <div>
-            <h2>Tracking chưa mở</h2>
+            <h2>Chưa thể theo dõi vị trí</h2>
             <p>{trackingStateMessage("Inactive")}</p>
             <p className="tracking-gate-meta">
               Hạn thuê {formatBookingDate(booking.endAt)}

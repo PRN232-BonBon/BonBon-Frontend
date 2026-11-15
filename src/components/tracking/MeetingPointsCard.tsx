@@ -107,7 +107,7 @@ export function MeetingPointsCard({
         />
         <PointFields
           label="Điểm trả xe"
-          hint="Đích tính khoảng cách tracking."
+          hint="Dùng để tính khoảng cách còn lại đến điểm trả xe."
           icon={<Flag size={16} />}
           point={value.return}
           picking={pickMode === "return"}

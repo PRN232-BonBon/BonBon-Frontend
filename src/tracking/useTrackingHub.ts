@@ -60,7 +60,7 @@ export function useTrackingHub({ bookingId, accessToken, enabled, onUpdate }: Us
     connection.onreconnecting(() => {
       if (cancelled) return;
       setState("connecting");
-      setError("Đang kết nối lại realtime…");
+      setError("Đang kết nối lại để cập nhật vị trí…");
     });
 
     connection.onreconnected(() => {
@@ -75,7 +75,7 @@ export function useTrackingHub({ bookingId, accessToken, enabled, onUpdate }: Us
     connection.onclose(() => {
       if (cancelled) return;
       setState("disconnected");
-      setError("Mất kết nối realtime. Bản đồ vẫn hiển thị vị trí mới nhất.");
+      setError("Mất kết nối cập nhật vị trí. Bản đồ vẫn hiển thị vị trí gần nhất.");
     });
 
     void (async () => {
@@ -90,7 +90,7 @@ export function useTrackingHub({ bookingId, accessToken, enabled, onUpdate }: Us
       } catch {
         if (cancelled) return;
         setState("disconnected");
-        setError("Không kết nối được realtime. Bấm Kết nối lại hoặc tải lại vị trí.");
+        setError("Không thể cập nhật vị trí. Vui lòng kết nối lại hoặc tải lại vị trí.");
         await connection.stop().catch(() => undefined);
       }
     })();

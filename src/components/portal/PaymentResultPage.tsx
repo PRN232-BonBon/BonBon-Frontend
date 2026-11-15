@@ -18,7 +18,7 @@ export function PaymentResultPage() {
       : paid ? <div className="payment-outcome payment-success"><CheckCircle size={64} weight="duotone" /><h3>Thanh toán thành công</h3><p>Hệ thống đã ghi nhận {money(status!.amount)}. Chuyến của bạn đã được xác nhận.</p></div>
       : status?.requiresReconciliation ? <div className="payment-outcome"><WarningCircle size={56} /><h3>Giao dịch cần đối soát</h3><p>Không thanh toán lại khi chưa rõ kết quả. Vui lòng liên hệ quản trị viên.</p></div>
       : failed ? <div className="payment-outcome"><WarningCircle size={56} /><h3>Thanh toán chưa thành công</h3><p>Giao dịch thất bại hoặc đã bị hủy. Vui lòng xem lại đơn hàng.</p></div>
-      : <div className="payment-outcome"><Clock size={56} /><h3>Đang xác minh thanh toán</h3><p>Kết quả được lấy từ backend. Việc quay lại trang này chưa đồng nghĩa với thanh toán thành công.</p></div>}
+      : <div className="payment-outcome"><Clock size={56} /><h3>Đang xác minh thanh toán</h3><p>BonBon đang kiểm tra giao dịch. Vui lòng kiểm tra lại sau và không thanh toán thêm khi chưa rõ kết quả.</p></div>}
     {error ? <p className="booking-confirmation-error" role="alert">{error}</p> : null}
     {id && !paid ? <button className="payment-check-status" type="button" onClick={refresh} disabled={checking}>{checking ? <><SpinnerGap size={17} className="booking-confirmation-spinner" /> Đang kiểm tra…</> : "Kiểm tra lại kết quả"}</button> : null}
     <a className="payment-result-back" href="/my-trips">Về chuyến của tôi</a>

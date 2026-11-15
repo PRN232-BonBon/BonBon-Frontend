@@ -12,7 +12,7 @@ export function isMeetingPointsConfigurable(status: string) {
 /** Lý do khoá form điểm trả xe, hoặc null khi vẫn sửa được. */
 export function meetingPointsLockReason(status: string, configured: boolean) {
   if (!isMeetingPointsConfigurable(status)) {
-    return "Chỉ thiết lập điểm trả xe khi booking đã được xác nhận và chưa kết thúc.";
+    return "Bạn có thể thiết lập điểm trả xe khi chuyến đi đã được xác nhận và chưa kết thúc.";
   }
   if (status === "InProgress" && configured) {
     return "Chuyến đang diễn ra nên điểm trả xe đã được khoá.";
@@ -23,11 +23,11 @@ export function meetingPointsLockReason(status: string, configured: boolean) {
 export function trackingStateMessage(state: string) {
   switch (state) {
     case "Ready":
-      return "Tracking đang mở. Vị trí xe cập nhật từ điện thoại của người thuê.";
+      return "Bạn có thể theo dõi vị trí xe được cập nhật từ điện thoại của người thuê.";
     case "MeetingPointsMissing":
-      return "Chưa thiết lập điểm trả xe nên backend chưa tính được khoảng cách cho chuyến này.";
+      return "Vui lòng thiết lập điểm trả xe để xem khoảng cách còn lại của chuyến đi.";
     case "Inactive":
-      return "Tracking chỉ mở trong thời gian thuê: bật khi chủ xe bàn giao xe và tắt khi khách trả xe.";
+      return "Bạn có thể theo dõi vị trí xe từ khi bàn giao xe đến khi khách trả xe.";
     default:
       return "Chưa xem được vị trí cho chuyến này.";
   }

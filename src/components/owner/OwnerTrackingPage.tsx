@@ -121,7 +121,7 @@ export function OwnerTrackingPage() {
             <p className="tracking-list-note">
               {trackable.length > 0
                 ? `${trackable.length} chuyến có thể theo dõi hoặc thiết lập điểm trả xe.`
-                : "Chưa có chuyến nào đang thuê. Tracking tự mở khi bạn bàn giao xe cho khách."}
+                : "Chưa có chuyến nào đang thuê. Bạn có thể theo dõi vị trí sau khi bàn giao xe cho khách."}
             </p>
             <div className="trip-list">
               {bookings.map((booking) => {
@@ -131,7 +131,7 @@ export function OwnerTrackingPage() {
                     <button
                       className="trip-image-button"
                       type="button"
-                      aria-label={`Mở tracking ${booking.vehicleName}`}
+                      aria-label={`Theo dõi vị trí ${booking.vehicleName}`}
                       onClick={() => selectBooking(booking.bookingId)}
                     >
                       {booking.coverImageUrl
