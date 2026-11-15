@@ -23,7 +23,7 @@ const renterNav = [
 
 const ownerNav = [
   { href: "/account", label: "Tài khoản của tôi", icon: UserCircle },
-  { href: "/owner/bookings", label: "Yêu cầu thuê xe", icon: ClipboardText },
+  { href: "/owner/bookings", label: "Đơn thuê xe", icon: ClipboardText },
   { href: "/owner/tracking", label: "Theo dõi chuyến cho thuê", icon: MapTrifold },
   { href: "/change-password", label: "Đổi mật khẩu", icon: LockKey },
 ];

@@ -16,6 +16,10 @@ interface ProblemDetails {
   detail?: string;
   errors?: Record<string, string[]>;
 }
+export class BookingRequestError extends Error {
+  readonly code?: string;
+  constructor(message: string, code?: string) { super(message); this.code = code; }
+}
 
 export interface BookingResponse {
   bookingId: string;
@@ -38,6 +42,22 @@ export interface BookingQuote extends RentalWindowPayload {
 }
 
 const API_BASE_URL = (import.meta.env?.VITE_API_URL || "/api").replace(/\/$/, "");
+
+export interface OccupiedInterval { startAt: string; endAt: string }
+
+export async function getOccupiedIntervals(vehicleId: string, startAt: string, endAt: string, signal?: AbortSignal): Promise<OccupiedInterval[]> {
+  const query = new URLSearchParams({ startAt, endAt });
+  const response = await fetch(`${API_BASE_URL}/vehicles/${encodeURIComponent(vehicleId)}/occupied-intervals?${query}`, { signal });
+  if (!response.ok) throw new Error("Không thể tải lịch xe. Vui lòng thử lại.");
+  return response.json() as Promise<OccupiedInterval[]>;
+}
+
+export async function checkVehicleAvailability(vehicleId: string, payload: RentalWindowPayload): Promise<boolean> {
+  const query = new URLSearchParams({ vehicleId, ...payload });
+  const response = await fetch(`${API_BASE_URL}/bookings/availability?${query}`, { cache: "no-store" });
+  if (!response.ok) throw new Error("Không thể kiểm tra lịch xe. Vui lòng thử lại.");
+  return ((await response.json()) as { isAvailable: boolean }).isAvailable;
+}
 
 export async function getBookingQuote(vehicleId: string, payload: RentalWindowPayload, signal?: AbortSignal): Promise<BookingQuote> {
   const response = await fetch(`${API_BASE_URL}/bookings/quote`, {
@@ -79,14 +99,19 @@ export async function validateRentalWindow(payload: RentalWindowPayload) {
   return response.json() as Promise<RentalWindowResponse>;
 }
 
-export async function createBooking(vehicleId: string, payload: RentalWindowPayload, accessToken: string) {
+export async function createBooking(vehicleId: string, payload: RentalWindowPayload, accessToken: string, expectedQuote: BookingQuote) {
   const response = await fetch(`${API_BASE_URL}/bookings`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ vehicleId, ...payload }),
+    body: JSON.stringify({ vehicleId, ...payload, expectedQuote: {
+      billableUnits: expectedQuote.billableUnits, unitPrice: expectedQuote.unitPrice,
+      weeklyDiscountPercent: expectedQuote.weeklyDiscountPercent, discountAmount: expectedQuote.discountAmount,
+      quotedRentalAmount: expectedQuote.quotedRentalAmount, includedMileageKm: expectedQuote.includedMileageKm,
+      overageFeePerKm: expectedQuote.overageFeePerKm, rentalTerms: expectedQuote.rentalTerms,
+    } }),
   });
 
   if (!response.ok) {
@@ -99,7 +124,7 @@ export async function createBooking(vehicleId: string, payload: RentalWindowPayl
     const validationMessage = problem?.errors
       ? Object.values(problem.errors).flat().find(Boolean)
       : undefined;
-    throw new Error(validationMessage ?? problem?.detail ?? "Không thể tạo chuyến thuê xe.");
+    throw new BookingRequestError(validationMessage ?? problem?.detail ?? "Không thể tạo chuyến thuê xe.", problem?.title);
   }
 
   return response.json() as Promise<BookingResponse>;

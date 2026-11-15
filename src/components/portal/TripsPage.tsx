@@ -21,7 +21,10 @@ export function TripsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [view, setView] = useState<View>(null);
+  const [view, setView] = useState<View>(() => {
+    const bookingId = new URLSearchParams(window.location.search).get("payment");
+    return bookingId ? { kind: "payment", bookingId } : null;
+  });
   const request = useRef<AbortController | null>(null);
 
   const load = useCallback(async () => {

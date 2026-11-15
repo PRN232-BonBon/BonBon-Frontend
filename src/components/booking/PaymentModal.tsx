@@ -31,7 +31,7 @@ export function PaymentModal({ bookingId, onClose, onPaid }: { bookingId: string
         // Recheck the saved order and eligibility, even when opened by the quick action.
         const detail = await getBookingDetail(bookingId, session, controller.signal);
         if (!active) return;
-        if (!canPayBooking(detail)) throw new Error("Đơn chưa được duyệt, đã thanh toán hoặc đã quá giờ nhận xe. Vui lòng kiểm tra lại trạng thái.");
+        if (!canPayBooking(detail)) throw new Error("Đơn không còn chờ thanh toán hoặc đã quá giờ nhận xe. Vui lòng kiểm tra lại trạng thái.");
         const payment = await createPayment(bookingId, session);
         if (!active) return;
         if (payment.bookingId !== bookingId || payment.amount !== detail.quotedRentalAmount || payment.currency !== "VND")

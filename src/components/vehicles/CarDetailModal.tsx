@@ -20,7 +20,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
-import { createBooking } from "../../booking/booking-api";
+import { BookingRequestError, createBooking, type BookingQuote } from "../../booking/booking-api";
 import type { VehicleListing } from "../../data/demo-vehicles";
 import { fuelLabel } from "../../vehicles/fuel-label";
 import { formatRentalSummary, RentalTimeModal, type RentalSelection } from "../booking/RentalTimeModal";
@@ -45,10 +45,11 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [quoteVersion, setQuoteVersion] = useState(0);
 
   const unitPrice = rentalWindow.rentalType === "Hourly" ? vehicle.hourPrice : vehicle.dayPrice;
   const baseAmount = unitPrice * rentalWindow.billableUnits;
-  const discountPercent = rentalWindow.rentalType === "Daily" && rentalWindow.billableUnits >= 7 && vehicle.weeklyDiscountEnabled
+  const discountPercent = rentalWindow.rentalType === "Daily" && Date.parse(rentalWindow.endAt) - Date.parse(rentalWindow.startAt) >= 7 * 86_400_000 && vehicle.weeklyDiscountEnabled
     ? vehicle.weeklyDiscountPercent ?? 0 : 0;
   const discountAmount = Math.round(baseAmount * discountPercent / 100);
   const total = baseAmount - discountAmount;
@@ -91,7 +92,7 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
     };
   }, [galleryLength, isGalleryOpen, isTimeOpen, isConfirmationOpen, onClose]);
 
-  const submitBooking = async () => {
+  const submitBooking = async (quote: BookingQuote) => {
     if (submittingRef.current) return;
     setMessage(null);
     if (!session) {
@@ -103,13 +104,14 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
     submittingRef.current = true;
     setIsSubmitting(true);
     try {
-      await createBooking(vehicle.id, {
+      const booking = await createBooking(vehicle.id, {
         rentalType: rentalWindow.rentalType,
         startAt: rentalWindow.startAt,
         endAt: rentalWindow.endAt,
-      }, session.accessToken);
-      window.location.href = "/my-trips";
+      }, session.accessToken, quote);
+      window.location.href = `/my-trips?payment=${encodeURIComponent(booking.bookingId)}`;
     } catch (error) {
+      if (error instanceof BookingRequestError && error.code === "QUOTE_CHANGED") setQuoteVersion(version => version + 1);
       setMessage(error instanceof TypeError ? "Không thể kết nối đến BonBon. Vui lòng kiểm tra Chuyến của tôi trước khi thử lại."
         : error instanceof Error ? error.message : "Không thể tạo chuyến thuê xe.");
       submittingRef.current = false;
@@ -215,7 +217,7 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
       </article>
 
       <AnimatePresence>
-        {isConfirmationOpen ? <BookingConfirmationModal key="booking-confirmation" vehicle={vehicle} rentalWindow={rentalWindow}
+        {isConfirmationOpen ? <BookingConfirmationModal key={quoteVersion} vehicle={vehicle} rentalWindow={rentalWindow}
           isSubmitting={isSubmitting} isAuthenticated={Boolean(session)} submissionError={message}
           onClose={() => { if (!submittingRef.current) setIsConfirmationOpen(false); }} onSubmit={submitBooking} /> : null}
       </AnimatePresence>
@@ -241,7 +243,7 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
         </div>
       ) : null}
 
-      {isTimeOpen ? <RentalTimeModal value={rentalWindow} onClose={() => setIsTimeOpen(false)} onConfirm={(selection) => { setRentalWindow(selection); setIsTimeOpen(false); }} /> : null}
+      {isTimeOpen ? <RentalTimeModal vehicleId={vehicle.id} value={rentalWindow} onClose={() => setIsTimeOpen(false)} onConfirm={(selection) => { setRentalWindow(selection); setIsTimeOpen(false); }} /> : null}
     </div>,
     document.body,
   );

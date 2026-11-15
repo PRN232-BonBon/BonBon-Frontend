@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowRight, CaretDown, CaretLeft, CaretRight, X } from "@phosphor-icons/react";
-import { validateRentalWindow, type RentalType, type RentalWindowResponse } from "../../booking/booking-api";
+import { checkVehicleAvailability, getOccupiedIntervals, validateRentalWindow, type OccupiedInterval, type RentalType, type RentalWindowResponse } from "../../booking/booking-api";
 
 export type RentalSelection = RentalWindowResponse;
 
 interface RentalTimeModalProps {
+  vehicleId?: string;
   value: RentalSelection;
   onClose: () => void;
   onConfirm: (selection: RentalSelection) => void;
@@ -95,11 +96,13 @@ function CalendarMonth({
   startDate,
   endDate,
   onSelect,
+  occupied,
 }: {
   month: Date;
   startDate: string;
   endDate: string;
   onSelect: (date: string) => void;
+  occupied: OccupiedInterval[];
 }) {
   const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
   const leadingDays = (firstDay.getDay() + 6) % 7;
@@ -121,6 +124,7 @@ function CalendarMonth({
           if (!date) return <span className="rental-day-empty" key={`empty-${index}`} />;
           const key = dateKey(date);
           const disabled = key < today;
+          const hasOccupiedTime = occupied.some(interval => new Date(interval.startAt).getTime() < new Date(`${key}T00:00:00+07:00`).getTime() + 86_400_000 && new Date(interval.endAt).getTime() > new Date(`${key}T00:00:00+07:00`).getTime());
           const isStart = key === startDate;
           const isEnd = key === endDate;
           const inRange = Boolean(endDate && key > startDate && key < endDate);
@@ -129,8 +133,9 @@ function CalendarMonth({
               type="button"
               key={key}
               disabled={disabled}
-              className={`${isStart || isEnd ? "is-selected" : ""} ${inRange ? "is-in-range" : ""}`}
-              aria-label={`Chọn ngày ${date.getDate()} tháng ${date.getMonth() + 1}`}
+              className={`${isStart || isEnd ? "is-selected" : ""} ${inRange ? "is-in-range" : ""} ${hasOccupiedTime ? "has-occupied-time" : ""}`}
+              aria-label={`Chọn ngày ${date.getDate()} tháng ${date.getMonth() + 1}${hasOccupiedTime ? ", có giờ đã được đặt" : ""}`}
+              title={hasOccupiedTime ? "Ngày này có giờ đã được đặt" : undefined}
               onClick={() => onSelect(key)}
             >
               {date.getDate()}
@@ -142,7 +147,7 @@ function CalendarMonth({
   );
 }
 
-export function RentalTimeModal({ value, onClose, onConfirm }: RentalTimeModalProps) {
+export function RentalTimeModal({ vehicleId, value, onClose, onConfirm }: RentalTimeModalProps) {
   const initialStart = vietnamParts(value.startAt);
   const initialEnd = vietnamParts(value.endAt);
   const [mode, setMode] = useState<RentalType>(value.rentalType);
@@ -158,6 +163,8 @@ export function RentalTimeModal({ value, onClose, onConfirm }: RentalTimeModalPr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [showLimitWarning, setShowLimitWarning] = useState(false);
+  const [occupied, setOccupied] = useState<OccupiedInterval[]>([]);
+  const [scheduleState, setScheduleState] = useState<"loading" | "ready" | "error">(vehicleId ? "loading" : "ready");
 
   const nextMonth = useMemo(
     () => new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1),
@@ -169,6 +176,25 @@ export function RentalTimeModal({ value, onClose, onConfirm }: RentalTimeModalPr
     const endAt = mode === "Hourly" ? addHours(startAt, durationHours) : endDate ? toIso(endDate, endTime) : "";
     return { startAt, endAt };
   }, [durationHours, endDate, endTime, mode, startDate, startTime]);
+
+  const scheduleMonth = mode === "Hourly" ? startDate.slice(0, 7) : `${viewMonth.getFullYear()}-${String(viewMonth.getMonth() + 1).padStart(2, "0")}`;
+  useEffect(() => {
+    if (!vehicleId || !/^\d{4}-\d{2}$/.test(scheduleMonth)) return;
+    const [year, month] = scheduleMonth.split("-").map(Number);
+    const start = toIso(`${scheduleMonth}-01`, "00:00");
+    const endDateUtc = new Date(Date.UTC(year, month + 2, 1));
+    const endKey = `${endDateUtc.getUTCFullYear()}-${String(endDateUtc.getUTCMonth() + 1).padStart(2, "0")}-01`;
+    const controller = new AbortController();
+    setScheduleState("loading");
+    getOccupiedIntervals(vehicleId, start, toIso(endKey, "00:00"), controller.signal)
+      .then(intervals => { if (!controller.signal.aborted) { setOccupied(intervals); setScheduleState("ready"); } })
+      .catch(() => { if (!controller.signal.aborted) setScheduleState("error"); });
+    return () => controller.abort();
+  }, [vehicleId, scheduleMonth]);
+
+  const overlaps = (start: string, end: string) => !!end && occupied.some(interval =>
+    Date.parse(start) < Date.parse(interval.endAt) && Date.parse(end) > Date.parse(interval.startAt));
+  const selectedTimeBusy = vehicleId && overlaps(draft.startAt, draft.endAt);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -214,6 +240,8 @@ export function RentalTimeModal({ value, onClose, onConfirm }: RentalTimeModalPr
   }
 
   async function confirm() {
+    if (vehicleId && scheduleState !== "ready") { setError("Chưa thể kiểm tra lịch xe. Vui lòng mở lại và thử lại."); return; }
+    if (selectedTimeBusy) { setError("Xe đã có lịch trong khoảng thời gian này. Vui lòng chọn giờ khác."); return; }
     if (!draft.endAt) {
       setError("Vui lòng chọn ngày trả xe.");
       return;
@@ -231,6 +259,10 @@ export function RentalTimeModal({ value, onClose, onConfirm }: RentalTimeModalPr
         startAt: draft.startAt,
         endAt: draft.endAt,
       });
+      if (vehicleId && !(await checkVehicleAvailability(vehicleId, normalized))) {
+        setError("Xe vừa có lịch trong khoảng thời gian này. Vui lòng chọn giờ khác.");
+        return;
+      }
       onConfirm(normalized);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Không thể kiểm tra thời gian thuê.");
@@ -273,8 +305,8 @@ export function RentalTimeModal({ value, onClose, onConfirm }: RentalTimeModalPr
                   onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))}
                 ><CaretLeft size={22} /></button>
                 <div className="rental-calendar-grid">
-                  <CalendarMonth month={viewMonth} startDate={startDate} endDate={endDate} onSelect={selectDailyDate} />
-                  <CalendarMonth month={nextMonth} startDate={startDate} endDate={endDate} onSelect={selectDailyDate} />
+                  <CalendarMonth month={viewMonth} startDate={startDate} endDate={endDate} onSelect={selectDailyDate} occupied={occupied} />
+                  <CalendarMonth month={nextMonth} startDate={startDate} endDate={endDate} onSelect={selectDailyDate} occupied={occupied} />
                 </div>
                 <button
                   className="rental-month-nav next"
@@ -305,20 +337,23 @@ export function RentalTimeModal({ value, onClose, onConfirm }: RentalTimeModalPr
               </div>
 
               <div className="rental-time-row">
-                <label><span>Nhận xe</span><span className="rental-select-wrap"><select value={startTime} onChange={(event) => setStartTime(event.target.value)}>{TIME_OPTIONS.map((time) => <option key={time}>{time}</option>)}</select><CaretDown size={18} /></span></label>
+                <label><span>Nhận xe</span><span className="rental-select-wrap"><select value={startTime} onChange={(event) => setStartTime(event.target.value)}>{TIME_OPTIONS.map((time) => <option key={time} disabled={!!vehicleId && occupied.some(interval => Date.parse(toIso(startDate, time)) >= Date.parse(interval.startAt) && Date.parse(toIso(startDate, time)) < Date.parse(interval.endAt))}>{time}</option>)}</select><CaretDown size={18} /></span></label>
                 <ArrowRight className="rental-time-arrow" size={20} />
-                <label><span>Trả xe</span><span className="rental-select-wrap"><select value={endTime} onChange={(event) => setEndTime(event.target.value)}>{TIME_OPTIONS.map((time) => <option key={time}>{time}</option>)}</select><CaretDown size={18} /></span></label>
+                <label><span>Trả xe</span><span className="rental-select-wrap"><select value={endTime} onChange={(event) => setEndTime(event.target.value)}>{TIME_OPTIONS.map((time) => <option key={time} disabled={!!vehicleId && !!endDate && overlaps(draft.startAt, toIso(endDate, time))}>{time}</option>)}</select><CaretDown size={18} /></span></label>
               </div>
             </>
           ) : (
             <div className="rental-hourly-fields">
               <label><span>Ngày bắt đầu</span><input type="date" min={dateKey(new Date())} value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
-              <label><span>Giờ nhận xe</span><span className="rental-select-wrap"><select value={startTime} onChange={(event) => setStartTime(event.target.value)}>{TIME_OPTIONS.map((time) => <option key={time}>{time}</option>)}</select><CaretDown size={18} /></span></label>
-              <label className="rental-duration-field"><span>Thời gian thuê</span><span className="rental-select-wrap"><select value={durationHours} onChange={(event) => setDurationHours(Number(event.target.value))}>{[4, 5, 6, 7, 8].map((hours) => <option value={hours} key={hours}>{hours} giờ - kết thúc {vietnamParts(addHours(draft.startAt, hours)).time}</option>)}</select><CaretDown size={18} /></span></label>
+              <label><span>Giờ nhận xe</span><span className="rental-select-wrap"><select value={startTime} onChange={(event) => setStartTime(event.target.value)}>{TIME_OPTIONS.map((time) => <option key={time} disabled={!!vehicleId && overlaps(toIso(startDate, time), addHours(toIso(startDate, time), durationHours))}>{time}</option>)}</select><CaretDown size={18} /></span></label>
+              <label className="rental-duration-field"><span>Thời gian thuê</span><span className="rental-select-wrap"><select value={durationHours} onChange={(event) => setDurationHours(Number(event.target.value))}>{[4, 5, 6, 7, 8].map((hours) => <option value={hours} key={hours} disabled={!!vehicleId && overlaps(draft.startAt, addHours(draft.startAt, hours))}>{hours} giờ - kết thúc {vietnamParts(addHours(draft.startAt, hours)).time}</option>)}</select><CaretDown size={18} /></span></label>
               <p className="rental-hourly-note">Thuê theo giờ phù hợp cho chuyến đi ngắn, tối đa 8 giờ.</p>
             </div>
           )}
 
+          {vehicleId && scheduleState === "loading" ? <p role="status">Đang tải lịch xe…</p> : null}
+          {vehicleId && scheduleState === "error" ? <p className="rental-error" role="alert">Không thể tải lịch xe. Vui lòng đóng và mở lại.</p> : null}
+          {selectedTimeBusy && scheduleState === "ready" ? <p className="rental-error" role="alert">Xe đã có lịch trong khoảng thời gian này. Vui lòng chọn giờ khác.</p> : null}
           {error ? <p className="rental-error" role="alert">{error}</p> : null}
         </div>
 
@@ -327,7 +362,7 @@ export function RentalTimeModal({ value, onClose, onConfirm }: RentalTimeModalPr
             <strong>{formatRentalSummary(displaySelection)}</strong>
             <span>Thời gian thuê: <b>{displaySelection.billableUnits} {displaySelection.unitLabel}</b></span>
           </div>
-          <button type="button" onClick={() => void confirm()} disabled={isSubmitting || showLimitWarning}>
+          <button type="button" onClick={() => void confirm()} disabled={isSubmitting || showLimitWarning || !!selectedTimeBusy || (!!vehicleId && scheduleState !== "ready")}>
             {isSubmitting ? "Đang kiểm tra…" : "Tiếp tục"}
           </button>
         </footer>

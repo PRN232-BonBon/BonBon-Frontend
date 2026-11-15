@@ -14,7 +14,7 @@ interface Props {
   isAuthenticated: boolean;
   submissionError: string | null;
   onClose: () => void;
-  onSubmit: () => Promise<void>;
+  onSubmit: (quote: BookingQuote) => Promise<void>;
 }
 
 type QuoteState = { kind: "loading" } | { kind: "error"; message: string } | { kind: "ready"; quote: BookingQuote };
@@ -107,7 +107,7 @@ export function BookingConfirmationModal({ vehicle, rentalWindow, isSubmitting, 
               </p>
               <p className="booking-confirmation-address"><MapPin size={17} weight="fill" />{vehicle.pickupAddress}</p>
               <div className="booking-confirmation-notice">
-                <ShieldCheck size={27} /><div><strong>Đặt xe qua BonBon</strong><p>Chủ xe duyệt yêu cầu trước. Bạn chưa cần thanh toán ở bước này.</p></div>
+                <ShieldCheck size={27} /><div><strong>Đặt xe qua BonBon</strong><p>Xe được giữ tạm trong tối đa 15 phút để bạn thanh toán.</p></div>
               </div>
             </div>
           </section>
@@ -128,7 +128,7 @@ export function BookingConfirmationModal({ vehicle, rentalWindow, isSubmitting, 
 
           <section className="booking-confirmation-section booking-confirmation-owner" aria-label="Chủ xe">
             <div className="booking-confirmation-owner-profile"><UserCircle size={76} weight="thin" /><div><span>Chủ xe</span><h3>{vehicle.owner?.fullName || "Chủ xe BonBon"}</h3><p>Nhận xe trực tiếp tại địa chỉ của chủ xe</p></div></div>
-            <p className="booking-confirmation-muted">Sau khi gửi yêu cầu, bạn có thể theo dõi trạng thái duyệt và thanh toán tại Chuyến của tôi.</p>
+            <p className="booking-confirmation-muted">Sau khi đặt xe, bạn có thể thanh toán và theo dõi chuyến đi tại Chuyến của tôi.</p>
           </section>
 
           <section className="booking-confirmation-section">
@@ -152,7 +152,7 @@ export function BookingConfirmationModal({ vehicle, rentalWindow, isSubmitting, 
                 {quote.discountAmount > 0 ? <div className="booking-confirmation-discount"><dt><span><Tag size={18} />Chương trình giảm giá</span><small>Giảm {quote.weeklyDiscountPercent}% khi thuê từ 7 ngày</small></dt><dd>-{money(quote.discountAmount)}</dd></div> : null}
                 <div className="booking-confirmation-total"><dt>Thành tiền</dt><dd>{money(quote.quotedRentalAmount)}</dd></div>
               </dl>
-              {!quote.isAvailable ? <p className="booking-confirmation-error" role="alert">Xe đã có lịch trong thời gian này. Vui lòng quay lại và chọn thời gian khác.</p> : <p className="booking-confirmation-payment-note"><CheckCircle size={18} />Chỉ thanh toán sau khi chủ xe chấp nhận yêu cầu.</p>}
+              {!quote.isAvailable ? <p className="booking-confirmation-error" role="alert">Xe đã có lịch trong thời gian này. Vui lòng quay lại và chọn thời gian khác.</p> : <p className="booking-confirmation-payment-note"><CheckCircle size={18} />Bạn sẽ được chuyển sang thanh toán sau khi đặt xe.</p>}
             </> : null}
           </section>
 
@@ -160,8 +160,8 @@ export function BookingConfirmationModal({ vehicle, rentalWindow, isSubmitting, 
           <footer className="booking-confirmation-actions">
             <button className="booking-confirmation-cancel" type="button" onClick={onClose} disabled={isSubmitting}>Hủy</button>
             <button className="booking-confirmation-submit" type="button" disabled={!quote?.isAvailable || isSubmitting}
-              onClick={() => { if (quote?.isAvailable && !isSubmitting) void onSubmit(); }}>
-              {isSubmitting ? <><SpinnerGap className="booking-confirmation-spinner" size={20} />Đang gửi yêu cầu…</> : isAuthenticated ? "Gửi yêu cầu thuê xe" : "Đăng nhập để gửi yêu cầu"}
+              onClick={() => { if (quote?.isAvailable && !isSubmitting) void onSubmit(quote); }}>
+              {isSubmitting ? <><SpinnerGap className="booking-confirmation-spinner" size={20} />Đang giữ xe…</> : isAuthenticated ? "Đặt xe và thanh toán" : "Đăng nhập để đặt xe"}
             </button>
           </footer>
         </div>

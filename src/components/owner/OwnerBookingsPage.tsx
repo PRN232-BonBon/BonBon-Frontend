@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowClockwise, Check, X } from "@phosphor-icons/react";
+import { ArrowClockwise } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
 import { bookingStatusLabel } from "../../booking/booking-status";
 import { formatBookingDate, formatBookingMoney } from "../../booking/booking-display";
-import { approveBooking, getOwnerBookings, rejectBooking, type OwnerBooking } from "../../owner/owner-api";
-import { canDecideOwnerBooking } from "../../owner/owner-portal-model";
+import { getOwnerBookings, type OwnerBooking } from "../../owner/owner-api";
 import "./owner-bookings.css";
 
 export function OwnerBookingsPage() {
@@ -12,10 +11,7 @@ export function OwnerBookingsPage() {
   const [items, setItems] = useState<OwnerBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [busyId, setBusyId] = useState("");
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const sending = useRef(false);
   const requestRef = useRef<AbortController | null>(null);
   const selectedId = new URLSearchParams(window.location.search).get("bookingId");
 
@@ -46,31 +42,12 @@ export function OwnerBookingsPage() {
     if (selectedId && !loading) document.getElementById(`owner-booking-${selectedId}`)?.scrollIntoView({ block: "center" });
   }, [selectedId, loading]);
 
-  const decide = async (item: OwnerBooking, decision: "approve" | "reject") => {
-    if (!session || sending.current || !canDecideOwnerBooking(item)) return;
-    const action = decision === "approve" ? "duyệt" : "từ chối";
-    if (decision === "reject" && !window.confirm(`Bạn có chắc muốn từ chối yêu cầu thuê ${item.vehicleName}?`)) return;
-    sending.current = true;
-    setBusyId(item.bookingId); setError(""); setNotice("");
-    try {
-      const result = decision === "approve"
-        ? await approveBooking(session, item.bookingId)
-        : await rejectBooking(session, item.bookingId);
-      if (result.bookingId !== item.bookingId || result.status !== (decision === "approve" ? "AwaitingPayment" : "Rejected")) throw new Error("Trạng thái phản hồi không khớp. Vui lòng cập nhật lại danh sách đơn.");
-      setNotice(result.isReplay ? `Yêu cầu này đã được ${action} trước đó.` : `Đã ${action} yêu cầu thuê xe.`);
-      await load();
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : `Không thể ${action} yêu cầu thuê xe.`);
-    } finally { sending.current = false; setBusyId(""); }
-  };
-
   return <>
     <div className="portal-title-row owner-bookings-heading">
-      <div><h1>Yêu cầu thuê xe</h1><p>Xem và phản hồi các yêu cầu đặt xe của khách.</p></div>
+      <div><h1>Đơn thuê xe</h1><p>Theo dõi các đơn thuê xe của khách.</p></div>
       <button className="trip-refresh" type="button" disabled={refreshing} onClick={() => void load()}><ArrowClockwise size={18} />{refreshing ? "Đang cập nhật…" : "Cập nhật"}</button>
     </div>
     {error ? <p className="booking-confirmation-error" role="alert">{error} <button type="button" onClick={() => void load()}>Thử lại</button></p> : null}
-    {notice ? <p className="owner-booking-notice" role="status">{notice}</p> : null}
     <article className="portal-card owner-bookings-card">
       {loading ? <div className="portal-loading" role="status">Đang tải yêu cầu…</div>
         : items.length === 0 ? <div className="owner-bookings-empty"><strong>Chưa có yêu cầu thuê xe</strong><p>Khi khách đặt xe của bạn, yêu cầu sẽ xuất hiện tại đây.</p></div>
@@ -85,10 +62,6 @@ export function OwnerBookingsPage() {
           </div>
           <div className="owner-booking-actions">
             <strong>{formatBookingMoney(item.totalAmount)}</strong>
-            {canDecideOwnerBooking(item) ? <div className="owner-booking-decision">
-              <button className="owner-approve" type="button" disabled={!!busyId} onClick={() => void decide(item, "approve")}><Check size={17} />{busyId === item.bookingId ? "Đang xử lý…" : "Duyệt"}</button>
-              <button className="owner-reject" type="button" disabled={!!busyId} onClick={() => void decide(item, "reject")}><X size={17} />Từ chối</button>
-            </div> : null}
           </div>
         </article>)}</div>}
     </article>

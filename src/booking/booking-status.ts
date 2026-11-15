@@ -1,5 +1,5 @@
 const statusLabels: Record<string, string> = {
-  PendingApproval: "Chờ xác nhận", AwaitingPayment: "Đã xác nhận · Chờ thanh toán",
+  PendingApproval: "Chờ xác nhận", AwaitingPayment: "Chờ thanh toán",
   Confirmed: "Đã thanh toán", ReadyForPickup: "Sẵn sàng nhận xe", InProgress: "Đang thuê",
   Returned: "Đã trả xe", AwaitingSettlement: "Chờ quyết toán", Completed: "Hoàn thành",
   Cancelled: "Đã hủy", Rejected: "Đã từ chối",

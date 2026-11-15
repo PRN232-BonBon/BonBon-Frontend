@@ -14,7 +14,7 @@ test("approval, future pickup and payment state are all required", () => {
   assert.equal(canPayBooking({ status: "AwaitingPayment", startAt: "2000-01-01" }), false);
   assert.equal(canPayBooking({ status: "AwaitingPayment", startAt: "invalid" }), false);
   assert.equal(bookingStatusLabel("PendingApproval"), "Chờ xác nhận");
-  assert.equal(bookingStatusLabel("AwaitingPayment"), "Đã xác nhận · Chờ thanh toán");
+  assert.equal(bookingStatusLabel("AwaitingPayment"), "Chờ thanh toán");
   assert.equal(bookingStatusLabel("Confirmed"), "Đã thanh toán");
 });
 

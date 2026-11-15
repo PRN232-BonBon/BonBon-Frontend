@@ -4,6 +4,7 @@ import { getBookingQuote, createBooking } from "../src/booking/booking-api.ts";
 import { formatBookingDate, formatBookingMoney } from "../src/booking/booking-display.ts";
 
 const windowPayload = { rentalType: "Daily", startAt: "2026-11-06T02:00:00.000Z", endAt: "2026-11-13T02:00:00.000Z" };
+const expectedQuote = { billableUnits: 7, unitPrice: 700000, weeklyDiscountPercent: 10, discountAmount: 490000, quotedRentalAmount: 4410000, includedMileageKm: 2100, overageFeePerKm: 3000, rentalTerms: null };
 
 test("preview calls the quote endpoint only, never creates a booking", async context => {
   const signal = new AbortController().signal;
@@ -43,19 +44,19 @@ test("aborted quote requests are not retried", async context => {
   assert.equal(calls, 1);
 });
 
-test("final submit sends identity via token, not client price or status", async context => {
+test("final submit sends the displayed quote only as an expectation and identity via token", async context => {
   context.mock.method(globalThis, "fetch", async (url, options) => {
     assert.equal(url, "/api/bookings");
     assert.equal(options.headers.Authorization, "Bearer test-token");
-    assert.deepEqual(JSON.parse(options.body), { vehicleId: "vehicle-1", ...windowPayload });
-    return Response.json({ bookingId: "booking-1", status: "PendingApproval" }, { status: 201 });
+    assert.deepEqual(JSON.parse(options.body), { vehicleId: "vehicle-1", ...windowPayload, expectedQuote });
+    return Response.json({ bookingId: "booking-1", status: "AwaitingPayment" }, { status: 201 });
   });
-  assert.equal((await createBooking("vehicle-1", windowPayload, "test-token")).status, "PendingApproval");
+  assert.equal((await createBooking("vehicle-1", windowPayload, "test-token", expectedQuote)).status, "AwaitingPayment");
 });
 
 test("failed submit exposes the server's actionable error", async context => {
   context.mock.method(globalThis, "fetch", async () => Response.json({ detail: "Xe vừa được đặt trong khoảng thời gian này." }, { status: 400 }));
-  await assert.rejects(createBooking("vehicle-1", windowPayload, "test-token"), /Xe vừa được đặt/);
+  await assert.rejects(createBooking("vehicle-1", windowPayload, "test-token", expectedQuote), /Xe vừa được đặt/);
 });
 
 test("rental dates use Vietnam time including the next calendar day", () => {

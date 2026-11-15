@@ -19,7 +19,7 @@ import {
 } from "@phosphor-icons/react";
 import type { VehicleListing } from "../../data/demo-vehicles";
 import { fuelLabel } from "../../vehicles/fuel-label";
-import { getVehicleCatalog } from "../../owner/catalog-api";
+import { getVehicleCatalog, getVehiclesAtLocation } from "../../owner/catalog-api";
 import {
   createDefaultRentalSelection,
   formatRentalSummary,
@@ -98,23 +98,62 @@ export function VehicleListPage() {
   const [sort, setSort] = useState<SortValue>("recommended");
   const [maxPrice, setMaxPrice] = useState("");
   const [catalog, setCatalog] = useState<VehicleListing[]>([]);
+  const [locationCatalog, setLocationCatalog] = useState<VehicleListing[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState("");
-  const selectedVehicle = catalog.find((vehicle) => vehicle.id === selectedVehicleId) ?? null;
+  const [linkedVehicle, setLinkedVehicle] = useState<VehicleListing | null>(null);
+  const selectedVehicle = locationCatalog.find((vehicle) => vehicle.id === selectedVehicleId)
+    ?? (linkedVehicle?.id === selectedVehicleId ? linkedVehicle : null);
 
   useEffect(() => {
     const controller = new AbortController();
-    getVehicleCatalog(controller.signal).then(setCatalog).catch(error => {
+    setCatalogLoading(true);
+    setCatalogError("");
+    Promise.all([
+      getVehicleCatalog(controller.signal, { location, rentalType: rentalWindow.rentalType, startAt: rentalWindow.startAt, endAt: rentalWindow.endAt }),
+      getVehiclesAtLocation(location, controller.signal),
+    ]).then(([available, allAtLocation]) => {
+      if (!controller.signal.aborted) { setCatalog(available); setLocationCatalog(allAtLocation); }
+    }).catch(error => {
       if (!controller.signal.aborted) setCatalogError(error instanceof Error ? error.message : "Không thể tải danh sách xe.");
     }).finally(() => { if (!controller.signal.aborted) setCatalogLoading(false); });
     return () => controller.abort();
-  }, []);
+  }, [location, rentalWindow.rentalType, rentalWindow.startAt, rentalWindow.endAt]);
+
+  // A shared vehicle link can refer to a vehicle outside the current search window.
+  // The detail modal still checks availability before a booking can be sent.
+  useEffect(() => {
+    if (!selectedVehicleId || locationCatalog.some(vehicle => vehicle.id === selectedVehicleId)) {
+      setLinkedVehicle(null);
+      return;
+    }
+    const controller = new AbortController();
+    setLinkedVehicle(null);
+    getVehicleCatalog(controller.signal)
+      .then(items => setLinkedVehicle(items.find(vehicle => vehicle.id === selectedVehicleId) ?? null))
+      .catch(() => { /* Search results still display if the linked vehicle cannot be loaded. */ });
+    return () => controller.abort();
+  }, [selectedVehicleId, locationCatalog]);
 
   useEffect(() => {
-    const syncSelectedVehicle = () => setSelectedVehicleId(new URLSearchParams(window.location.search).get("vehicle"));
-    window.addEventListener("popstate", syncSelectedVehicle);
-    return () => window.removeEventListener("popstate", syncSelectedVehicle);
+    const syncSearch = () => {
+      const query = new URLSearchParams(window.location.search);
+      setSelectedVehicleId(query.get("vehicle"));
+      setLocation(query.get("location") || "TP. Hồ Chí Minh");
+      setRentalWindow(initialRentalSelection());
+    };
+    window.addEventListener("popstate", syncSearch);
+    return () => window.removeEventListener("popstate", syncSearch);
   }, []);
+
+  const updateSearchUrl = (nextLocation: string, selection: RentalSelection) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("location", nextLocation);
+    url.searchParams.set("rentalType", selection.rentalType);
+    url.searchParams.set("startAt", selection.startAt);
+    url.searchParams.set("endAt", selection.endAt);
+    window.history.pushState({}, "", url);
+  };
 
   const openVehicle = (vehicleId: string) => {
     const url = new URL(window.location.href);
@@ -148,6 +187,17 @@ export function VehicleListPage() {
     });
   }, [catalog, bodyType, brand, fuel, maxPrice, seats, sort, transmission, rentalWindow.rentalType]);
 
+  const unavailableVehicles = useMemo(() => {
+    const availableIds = new Set(catalog.map(vehicle => vehicle.id));
+    return locationCatalog.filter(vehicle => !availableIds.has(vehicle.id)
+      && (bodyType === "all" || vehicle.bodyType === bodyType)
+      && (brand === "all" || vehicle.brand === brand)
+      && (transmission === "all" || vehicle.transmission === transmission)
+      && (seats === "all" || vehicle.seats === Number(seats))
+      && (fuel === "all" || vehicle.fuel === fuel)
+      && (!maxPrice || (rentalWindow.rentalType === "Hourly" ? vehicle.hourPrice : vehicle.dayPrice) <= Number(maxPrice)));
+  }, [catalog, locationCatalog, bodyType, brand, transmission, seats, fuel, maxPrice, rentalWindow.rentalType]);
+
   const resetFilters = () => {
     setBodyType("all"); setBrand("all"); setTransmission("all"); setSeats("all"); setFuel("all"); setSort("recommended"); setMaxPrice("");
   };
@@ -159,7 +209,7 @@ export function VehicleListPage() {
           <a className="round-back-button" href="/" aria-label="Quay về trang chủ"><ArrowLeft size={19} /></a>
           <label className="list-search-control">
             <MapPin size={21} weight="bold" />
-            <select value={location} onChange={(event) => setLocation(event.target.value)} aria-label="Địa điểm nhận xe">
+            <select value={location} onChange={(event) => { setLocation(event.target.value); updateSearchUrl(event.target.value, rentalWindow); }} aria-label="Địa điểm nhận xe">
               {LOCATIONS.map((item) => <option key={item}>{item}</option>)}
             </select>
           </label>
@@ -179,14 +229,15 @@ export function VehicleListPage() {
 
       <section className="vehicle-results vehicle-list-container">
         <div className="vehicle-results-heading">
-          <div><p>Xe tự lái</p><h1>Xe tại {location}</h1><span>{vehicles.length} xe phù hợp với lựa chọn của bạn</span></div>
+          <div><p>Xe tự lái</p><h1>Xe tại {location}</h1><span>{catalogLoading ? "Đang tìm xe…" : catalogError ? "Chưa thể tải kết quả" : `${vehicles.length} xe phù hợp với lựa chọn của bạn`}</span></div>
           <label className="sort-control">Sắp xếp<select value={sort} onChange={(event) => setSort(event.target.value as SortValue)}><option value="recommended">Tối ưu</option><option value="price-asc">Giá thấp nhất</option><option value="price-desc">Giá cao nhất</option><option value="rating">Đánh giá tốt nhất</option></select><CaretDown /></label>
         </div>
         {catalogLoading ? <div className="vehicle-empty" role="status"><CarProfile size={56} /><p>Đang tải danh sách xe…</p></div> : catalogError ? <div className="vehicle-empty" role="alert"><h2>Chưa thể tải danh sách xe</h2><p>{catalogError}</p><button type="button" onClick={() => window.location.reload()}>Thử lại</button></div> : vehicles.length ? <div className="vehicle-grid">{vehicles.map((vehicle, index) => <VehicleCard vehicle={vehicle} index={index} onOpen={openVehicle} rentalType={rentalWindow.rentalType} key={vehicle.id} />)}</div> : <div className="vehicle-empty"><CarProfile size={56} /><h2>Chưa tìm thấy xe phù hợp</h2><p>Hãy thử nới lỏng một vài điều kiện lọc.</p><button type="button" onClick={resetFilters}>Xóa bộ lọc</button></div>}
+        {!catalogLoading && !catalogError && unavailableVehicles.length > 0 ? <section aria-label="Xe không trống trong thời gian đã chọn"><h2>Xe không trống trong thời gian đã chọn</h2><p>Chọn xe để xem lịch và tìm thời gian khác.</p><div className="vehicle-grid">{unavailableVehicles.map((vehicle, index) => <VehicleCard vehicle={vehicle} index={index} onOpen={openVehicle} rentalType={rentalWindow.rentalType} key={vehicle.id} />)}</div></section> : null}
       </section>
 
       {selectedVehicle ? <CarDetailModal vehicle={selectedVehicle} initialRentalWindow={rentalWindow} onClose={closeVehicle} /> : null}
-      {isTimeOpen ? <RentalTimeModal value={rentalWindow} onClose={() => setIsTimeOpen(false)} onConfirm={(selection) => { if (selection.rentalType !== rentalWindow.rentalType) setMaxPrice(""); setRentalWindow(selection); setIsTimeOpen(false); }} /> : null}
+      {isTimeOpen ? <RentalTimeModal value={rentalWindow} onClose={() => setIsTimeOpen(false)} onConfirm={(selection) => { if (selection.rentalType !== rentalWindow.rentalType) setMaxPrice(""); setRentalWindow(selection); updateSearchUrl(location, selection); setIsTimeOpen(false); }} /> : null}
       {isFilterOpen ? createPortal(
         <div className="vehicle-filter-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsFilterOpen(false); }}>
           <section className="vehicle-filter-modal" role="dialog" aria-modal="true" aria-labelledby="vehicle-filter-title">
