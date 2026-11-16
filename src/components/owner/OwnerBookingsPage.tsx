@@ -3,7 +3,9 @@ import { ArrowClockwise } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
 import { bookingStatusLabel } from "../../booking/booking-status";
 import { formatBookingDate, formatBookingMoney } from "../../booking/booking-display";
+import { returnSummary, type ExcessMileageResult } from "../../booking/return-api";
 import { getOwnerBookings, type OwnerBooking } from "../../owner/owner-api";
+import { ReturnVehicleForm } from "../booking/ReturnVehicleForm";
 import "./owner-bookings.css";
 
 export function OwnerBookingsPage() {
@@ -12,6 +14,8 @@ export function OwnerBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [returningId, setReturningId] = useState<string | null>(null);
+  const [returnResult, setReturnResult] = useState<{ bookingId: string; text: string } | null>(null);
   const requestRef = useRef<AbortController | null>(null);
   const selectedId = new URLSearchParams(window.location.search).get("bookingId");
 
@@ -42,6 +46,12 @@ export function OwnerBookingsPage() {
     if (selectedId && !loading) document.getElementById(`owner-booking-${selectedId}`)?.scrollIntoView({ block: "center" });
   }, [selectedId, loading]);
 
+  const handleReturned = (bookingId: string, result: ExcessMileageResult) => {
+    setReturningId(null);
+    setReturnResult({ bookingId, text: returnSummary(result) });
+    void load();
+  };
+
   return <>
     <div className="portal-title-row owner-bookings-heading">
       <div><h1>Đơn thuê xe</h1><p>Theo dõi các đơn thuê xe của khách.</p></div>
@@ -62,7 +72,17 @@ export function OwnerBookingsPage() {
           </div>
           <div className="owner-booking-actions">
             <strong>{formatBookingMoney(item.totalAmount)}</strong>
+            {item.status === "InProgress" && returningId !== item.bookingId
+              ? <div className="owner-booking-decision"><button className="return-trigger" type="button" onClick={() => setReturningId(item.bookingId)}>Xác nhận trả xe</button></div>
+              : null}
           </div>
+
+          {returningId === item.bookingId && session ? <div className="return-form-slot">
+            <ReturnVehicleForm bookingId={item.bookingId} session={session} title="Xác nhận trả xe" submitLabel="Xác nhận trả xe"
+              onClose={() => setReturningId(null)} onReturned={(result) => handleReturned(item.bookingId, result)} />
+          </div> : null}
+
+          {returnResult?.bookingId === item.bookingId ? <p className="return-result" role="status">{returnResult.text}</p> : null}
         </article>)}</div>}
     </article>
   </>;
