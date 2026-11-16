@@ -55,6 +55,17 @@ function addHours(iso: string, hours: number) {
   return new Date(new Date(iso).getTime() + hours * 3_600_000).toISOString();
 }
 
+function futurePickup(start: { date: string; time: string }, now: number) {
+  if (isFutureRentalSlot(start.date, start.time, now)) return start;
+  let date = vietnamDateKey(now);
+  let time = firstFutureRentalTime(date, now);
+  if (!time) {
+    date = vietnamDateKey(now + 86_400_000);
+    time = firstFutureRentalTime(date, now);
+  }
+  return { date, time: time ?? "00:00" };
+}
+
 function exceedsDailyRentalLimit(startDate: string, startTime: string, endDate: string, endTime: string) {
   if (!startDate || !endDate) return false;
   return new Date(toIso(endDate, endTime)).getTime() - new Date(toIso(startDate, startTime)).getTime()
@@ -148,17 +159,14 @@ function CalendarMonth({
 export function RentalTimeModal({ vehicleId, value, onClose, onConfirm }: RentalTimeModalProps) {
   const initialStartValue = vietnamParts(value.startAt);
   const current = Date.now();
-  let initialStart = initialStartValue;
-  if (value.rentalType === "Hourly" && (!isFutureRentalSlot(initialStartValue.date, initialStartValue.time, current) || !isValidHourlyRental(initialStartValue.time, 4))) {
-    let date = vietnamDateKey(current);
-    let next = firstFutureRentalTime(date, current);
-    if (!next) { date = vietnamDateKey(current + 86_400_000); next = firstFutureRentalTime(date, current); }
-    if (next) initialStart = { date, time: next };
+  let initialStart = futurePickup(initialStartValue, current);
+  if (value.rentalType === "Hourly" && !isValidHourlyRental(initialStart.time, 4)) {
+    initialStart = futurePickup({ date: vietnamDateKey(current), time: "00:00" }, current);
   }
   const initialEnd = vietnamParts(value.endAt);
   const [mode, setMode] = useState<RentalType>(value.rentalType);
   const [startDate, setStartDate] = useState(initialStart.date);
-  const [endDate, setEndDate] = useState(initialEnd.date);
+  const [endDate, setEndDate] = useState(initialEnd.date > initialStart.date ? initialEnd.date : "");
   const [startTime, setStartTime] = useState(initialStart.time);
   const [endTime, setEndTime] = useState(initialEnd.time);
   const [durationHours, setDurationHours] = useState(value.rentalType === "Hourly" && isValidHourlyRental(initialStart.time, value.billableUnits) ? value.billableUnits : 4);
@@ -211,11 +219,15 @@ export function RentalTimeModal({ vehicleId, value, onClose, onConfirm }: Rental
 
   function selectDailyMode() {
     if (mode === "Daily") return;
-    if (savedDailyStart) {
-      setStartDate(savedDailyStart.date);
-      setStartTime(savedDailyStart.time);
-      setSavedDailyStart(null);
-    }
+    const current = Date.now();
+    const start = futurePickup(savedDailyStart ?? { date: startDate, time: startTime }, current);
+    setNow(current);
+    setStartDate(start.date);
+    setStartTime(start.time);
+    if (endDate && endDate <= start.date) setEndDate("");
+    const month = new Date(`${start.date}T00:00:00`);
+    setViewMonth(new Date(month.getFullYear(), month.getMonth(), 1));
+    setSavedDailyStart(null);
     setMode("Daily");
     setError("");
   }
@@ -276,12 +288,14 @@ export function RentalTimeModal({ vehicleId, value, onClose, onConfirm }: Rental
   }, [endDate, endTime, mode, startDate, startTime]);
 
   function selectDailyDate(date: string) {
+    const current = Date.now();
+    setNow(current);
     setError("");
     if (!startDate || endDate || date < startDate) {
       setStartDate(date);
       setEndDate("");
-      if (!isFutureRentalSlot(date, startTime, Date.now())) {
-        const next = firstFutureRentalTime(date, Date.now());
+      if (!isFutureRentalSlot(date, startTime, current)) {
+        const next = firstFutureRentalTime(date, current);
         if (next) setStartTime(next);
       }
     } else if (date === startDate) {
@@ -406,9 +420,9 @@ export function RentalTimeModal({ vehicleId, value, onClose, onConfirm }: Rental
               <div className="rental-time-row">
                 <label><span>Nhận xe</span><span className="rental-select-wrap"><select value={startTime} onChange={(event) => setStartTime(event.target.value)}>{TIME_OPTIONS.map((time) => <option key={time} disabled={!isFutureRentalSlot(startDate, time, now) || (!!vehicleId && occupied.some(interval => Date.parse(toIso(startDate, time)) >= Date.parse(interval.startAt) && Date.parse(toIso(startDate, time)) < Date.parse(interval.endAt)))}>{time}</option>)}</select><CaretDown size={18} /></span></label>
                 <ArrowRight className="rental-time-arrow" size={20} />
-                <label><span>Trả xe</span><span className="rental-select-wrap"><select value={endTime} onChange={(event) => setEndTime(event.target.value)}>{TIME_OPTIONS.map((time) => <option key={time} disabled={!!vehicleId && !!endDate && overlaps(draft.startAt, toIso(endDate, time))}>{time}</option>)}</select><CaretDown size={18} /></span></label>
+                <label><span>Trả xe</span><span className="rental-select-wrap"><select value={endTime} onChange={(event) => setEndTime(event.target.value)}>{TIME_OPTIONS.map((time) => <option key={time} disabled={!!endDate && (!isFutureRentalSlot(endDate, time, now) || (!!vehicleId && overlaps(draft.startAt, toIso(endDate, time))))}>{time}</option>)}</select><CaretDown size={18} /></span></label>
               </div>
-              {!isFutureRentalSlot(startDate, startTime, now) ? <p className="rental-error" role="alert">Giờ nhận xe đã qua. Vui lòng chọn giờ khác.</p> : null}
+              {!firstFutureRentalTime(startDate, now) ? <p className="rental-error" role="alert">Không còn giờ nhận xe trong ngày này. Vui lòng chọn ngày tiếp theo.</p> : !isFutureRentalSlot(startDate, startTime, now) ? <p className="rental-error" role="alert">Giờ nhận xe đã qua. Vui lòng chọn giờ khác.</p> : null}
             </>
           ) : (
             <div className="rental-hourly-fields">
