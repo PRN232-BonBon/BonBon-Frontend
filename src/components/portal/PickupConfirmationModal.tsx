@@ -7,6 +7,7 @@ export function PickupConfirmationModal({ bookingId, session, onClose, onConfirm
   bookingId: string; session: AuthSession; onClose: () => void; onConfirmed: () => void;
 }) {
   const [odometer, setOdometer] = useState("");
+  const [conditionNotes, setConditionNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const pending = useRef(false);
@@ -23,7 +24,7 @@ export function PickupConfirmationModal({ bookingId, session, onClose, onConfirm
     setBusy(true);
     setError("");
     try {
-      await confirmPickup(bookingId, session, { odometerKm: value });
+      await confirmPickup(bookingId, session, { odometerKm: value, conditionNotes: conditionNotes.trim() || null });
       onConfirmed();
     } catch (reason) {
       setError(reason instanceof Error ? `${reason.message} Vui lòng kiểm tra lại trạng thái chuyến trước khi thử lại.` : "Không thể xác nhận. Vui lòng kiểm tra lại trạng thái chuyến trước khi thử lại.");
@@ -40,6 +41,9 @@ export function PickupConfirmationModal({ bookingId, session, onClose, onConfirm
       <div className="pickup-odometer"><input id="pickup-odometer" type="number" inputMode="decimal" min="0" max="100000000" step="any" required
         value={odometer} onChange={event => setOdometer(event.target.value)} placeholder="Ví dụ: 15000" disabled={busy} /><span>km</span></div>
       <small>Ghi lại số km thực tế lúc nhận xe để đối chiếu khi trả xe.</small>
+      <label htmlFor="pickup-condition">Tình trạng xe</label>
+      <textarea id="pickup-condition" rows={3} maxLength={2000} value={conditionNotes}
+        onChange={event => setConditionNotes(event.target.value)} placeholder="Ví dụ: Xe sạch sẽ, có vết xước nhỏ bên cửa trái" disabled={busy} />
       {error ? <p className="booking-confirmation-error" role="alert">{error}</p> : null}
       <div className="pickup-actions"><button type="button" className="booking-confirmation-cancel" onClick={onClose} disabled={busy}>Quay lại</button>
         <button type="submit" className="booking-confirmation-submit" disabled={busy}>{busy ? "Đang xác nhận…" : "Xác nhận đã nhận xe"}</button></div>

@@ -6,17 +6,15 @@ import "./return-vehicle.css";
 interface ReturnVehicleFormProps {
   bookingId: string;
   session: AuthSession;
-  /** "Trả xe" ở phía khách thuê, "Xác nhận trả xe" ở phía chủ xe. */
   title: string;
   submitLabel: string;
   onClose: () => void;
   onReturned: (result: ExcessMileageResult) => void;
 }
 
-/** Form ghi nhận trả xe: số km, mức xăng, tình trạng — dùng chung cho khách thuê và chủ xe. */
+/** Form ghi nhận số km và tình trạng khi khách trả xe. */
 export function ReturnVehicleForm({ bookingId, session, title, submitLabel, onClose, onReturned }: ReturnVehicleFormProps) {
   const [odometerKm, setOdometerKm] = useState("");
-  const [fuelLevel, setFuelLevel] = useState("");
   const [conditionNotes, setConditionNotes] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -29,20 +27,12 @@ export function ReturnVehicleForm({ bookingId, session, title, submitLabel, onCl
       setError("Vui lòng nhập số km hiện tại của xe (lớn hơn hoặc bằng 0).");
       return;
     }
-    const fuel = fuelLevel.trim() === "" ? null : Number(fuelLevel.replace(",", "."));
-    if (fuel !== null && (!Number.isFinite(fuel) || fuel < 0 || fuel > 100)) {
-      setError("Mức xăng phải từ 0% đến 100%.");
-      return;
-    }
-
     setSaving(true);
     setError("");
     try {
       const result = await confirmReturn(session, bookingId, {
         odometerKm: odometer,
-        fuelLevel: fuel,
         conditionNotes: conditionNotes.trim() || null,
-        inspectedAt: null,
       });
       onReturned(result);
     } catch (reason) {
@@ -62,10 +52,6 @@ export function ReturnVehicleForm({ bookingId, session, title, submitLabel, onCl
         <label>
           <span>Số km hiện tại *</span>
           <input type="text" inputMode="decimal" value={odometerKm} onChange={(event) => setOdometerKm(event.target.value)} placeholder="Ví dụ: 45230" />
-        </label>
-        <label>
-          <span>Mức xăng (%)</span>
-          <input type="text" inputMode="decimal" value={fuelLevel} onChange={(event) => setFuelLevel(event.target.value)} placeholder="Ví dụ: 60" />
         </label>
         <label className="return-wide">
           <span>Tình trạng xe</span>

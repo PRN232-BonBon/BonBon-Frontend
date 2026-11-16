@@ -6,9 +6,7 @@ const API_BASE_URL = (import.meta.env?.VITE_API_URL || "/api").replace(/\/$/, ""
 /** Body của `ConfirmReturnRequest`. */
 export interface ReturnVehiclePayload {
   odometerKm: number;
-  fuelLevel: number | null;
   conditionNotes: string | null;
-  inspectedAt: string | null;
 }
 
 /** `ExcessMileageCalculationResponse` — kết quả trả xe kèm phí vượt km. */

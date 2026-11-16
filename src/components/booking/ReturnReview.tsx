@@ -31,7 +31,7 @@ export function ReturnReview({ bookingId, session, onClose, onConfirmed }: {
   const km = (value: number | null | undefined) => value == null ? "Chưa có" : `${value.toLocaleString("vi-VN")} km`;
   return <section className="return-review" aria-label="Đối chiếu trả xe">
     <h3>Đối chiếu thông tin trả xe</h3>
-    <p>Kiểm tra số km trên xe với biên bản trước khi xác nhận nhận lại xe.</p>
+    <p>Đối chiếu số km và tình trạng xe trước khi xác nhận nhận lại xe.</p>
     {!detail && !error ? <p role="status">Đang tải biên bản…</p> : null}
     {detail && mileage ? <>
       <div className="return-review-stats">
@@ -40,7 +40,10 @@ export function ReturnReview({ bookingId, session, onClose, onConfirmed }: {
         <div><span>Quãng đường đã đi</span><strong>{km(mileage.actualDistanceKm)}</strong></div>
         <div><span>Giới hạn của chuyến</span><strong>{mileage.includedMileageKm == null ? "Không giới hạn" : km(mileage.includedMileageKm)}</strong></div>
       </div>
-      {returned?.conditionNotes ? <p>Tình trạng xe: {returned.conditionNotes}</p> : null}
+      <div className="return-review-conditions">
+        <div><span>Tình trạng khi nhận xe</span><p>{pickup?.conditionNotes || "Không có mô tả"}</p></div>
+        <div><span>Tình trạng khi trả xe</span><p>{returned?.conditionNotes || "Không có mô tả"}</p></div>
+      </div>
       <div className="return-review-fee"><span>{mileage.excessKm > 0 ? `Vượt ${km(mileage.excessKm)} · ${formatBookingMoney(mileage.overageFeePerKm ?? 0)}/km` : "Không vượt giới hạn km"}</span><strong>{formatBookingMoney(mileage.excessFeeAmount)}</strong></div>
       <p>{mileage.excessFeeAmount > 0 ? "Sau khi xác nhận, khách sẽ thanh toán phụ phí trước khi chuyến kết thúc." : "Không có phụ phí vượt km. Chuyến sẽ kết thúc sau khi bạn xác nhận."}</p>
       <div className="return-actions"><button className="primary" type="button" onClick={() => void confirm()} disabled={saving || pickup?.odometerKm == null || returned?.odometerKm == null}>{saving ? "Đang xác nhận…" : "Xác nhận trả xe"}</button><button className="secondary" type="button" onClick={onClose} disabled={saving}>Đóng</button></div>
