@@ -25,6 +25,7 @@ import type { VehicleListing } from "../../data/demo-vehicles";
 import { fuelLabel } from "../../vehicles/fuel-label";
 import { formatRentalSummary, RentalTimeModal, type RentalSelection } from "../booking/RentalTimeModal";
 import { BookingConfirmationModal } from "../booking/BookingConfirmationModal";
+import { PhoneContact } from "../common/PhoneContact";
 
 interface CarDetailModalProps {
   vehicle: VehicleListing;
@@ -191,7 +192,7 @@ export function CarDetailModal({ vehicle, initialRentalWindow, onClose }: CarDet
 
               <section className="car-owner-section">
                 <UserCircle size={54} weight="duotone" />
-                <div><span>Chủ xe</span><strong>{vehicle.owner?.fullName || "Chủ xe BonBon"}</strong><small>Nhận xe trực tiếp tại địa chỉ của chủ xe</small></div>
+                <div><span>Chủ xe</span><strong>{vehicle.owner?.fullName || "Chủ xe BonBon"}</strong><PhoneContact phone={vehicle.owner?.phone} label="Số điện thoại" /><small>Nhận xe trực tiếp tại địa chỉ của chủ xe</small></div>
               </section>
             </div>
 

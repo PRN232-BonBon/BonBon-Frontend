@@ -6,6 +6,7 @@ import { bookingStatusLabel, canCancelBooking, canPayBooking, isPaidBooking } fr
 import { formatBookingDate, formatBookingMoney as money } from "../../booking/booking-display";
 import { paymentErrorMessage } from "../../payment/payment-api";
 import { BookingModalShell } from "./BookingModalShell";
+import { PhoneContact } from "../common/PhoneContact";
 import "./payment.css";
 
 export function OrderDetailModal({ bookingId, onClose, onPayment, onCancelled }: { bookingId: string; onClose: () => void; onPayment: () => void; onCancelled?: () => void }) {
@@ -61,7 +62,7 @@ export function OrderDetailModal({ bookingId, onClose, onPayment, onCancelled }:
       <section className="booking-confirmation-section"><h3>Địa chỉ giao nhận xe</h3><p className="booking-confirmation-pickup">{detail.vehicle.pickupAddress}</p>
         <a className="booking-confirmation-map" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detail.vehicle.pickupAddress)}`} target="_blank" rel="noopener noreferrer"><MapTrifold size={19} />Xem bản đồ<CaretRight size={16} /></a>
       </section>
-      <section className="booking-confirmation-section booking-confirmation-owner"><div className="booking-confirmation-owner-profile"><UserCircle size={76} weight="thin" /><div><span>Chủ xe</span><h3>{detail.owner.fullName}</h3><p>Nhận xe trực tiếp tại địa chỉ của chủ xe</p></div></div></section>
+      <section className="booking-confirmation-section booking-confirmation-owner"><div className="booking-confirmation-owner-profile"><UserCircle size={76} weight="thin" /><div><span>Chủ xe</span><h3>{detail.owner.fullName}</h3><PhoneContact phone={detail.owner.phone} label="Số điện thoại" /><p>Nhận xe trực tiếp tại địa chỉ của chủ xe</p></div></div></section>
       <section className="booking-confirmation-section"><h3>Giấy tờ thuê xe</h3><p className="booking-confirmation-document"><IdentificationCard size={25} />GPLX phù hợp và CCCD hoặc Passport để đối chiếu khi nhận xe.</p></section>
       {detail.rentalTerms ? <section className="booking-confirmation-section"><h3>Điều khoản thuê xe</h3><p className="booking-confirmation-terms">{detail.rentalTerms}</p></section> : null}
       {detail.includedMileageKm != null ? <section className="booking-confirmation-mileage"><Info size={21} /><p>Giới hạn quãng đường: <strong>{detail.includedMileageKm.toLocaleString("vi-VN")} km/chuyến</strong>.{detail.overageFeePerKm != null ? <> Phí vượt giới hạn: <strong>{money(detail.overageFeePerKm)}/km</strong>.</> : null}</p></section> : null}

@@ -5,6 +5,7 @@ import type { VehicleListing } from "../../data/demo-vehicles";
 import { getBookingQuote, type BookingQuote } from "../../booking/booking-api";
 import { formatBookingDate, formatBookingMoney as money } from "../../booking/booking-display";
 import type { RentalSelection } from "./RentalTimeModal";
+import { PhoneContact } from "../common/PhoneContact";
 import "./BookingConfirmationModal.css";
 
 interface Props {
@@ -127,7 +128,7 @@ export function BookingConfirmationModal({ vehicle, rentalWindow, isSubmitting, 
           </section>
 
           <section className="booking-confirmation-section booking-confirmation-owner" aria-label="Chủ xe">
-            <div className="booking-confirmation-owner-profile"><UserCircle size={76} weight="thin" /><div><span>Chủ xe</span><h3>{vehicle.owner?.fullName || "Chủ xe BonBon"}</h3><p>Nhận xe trực tiếp tại địa chỉ của chủ xe</p></div></div>
+            <div className="booking-confirmation-owner-profile"><UserCircle size={76} weight="thin" /><div><span>Chủ xe</span><h3>{vehicle.owner?.fullName || "Chủ xe BonBon"}</h3><PhoneContact phone={vehicle.owner?.phone} label="Số điện thoại" /><p>Nhận xe trực tiếp tại địa chỉ của chủ xe</p></div></div>
             <p className="booking-confirmation-muted">Sau khi đặt xe, bạn có thể thanh toán và theo dõi chuyến đi tại Chuyến của tôi.</p>
           </section>
 

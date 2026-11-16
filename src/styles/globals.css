@@ -3008,7 +3008,7 @@ html[data-theme="dark"] {
 .car-owner-section { display: flex; align-items: center; gap: 13px; border-top: 1px solid #e9e9e5; margin-top: 26px; padding: 24px 0 6px; }
 .car-owner-section > svg { color: #d89a00; }
 .car-owner-section > div { display: grid; gap: 3px; }
-.car-owner-section span { color: #8a8a85; font-size: .68rem; }
+.car-owner-section > div > span:first-child { color: #8a8a85; font-size: .68rem; }
 .car-owner-section strong { color: #252524; font-size: .94rem; }
 .car-owner-section small { display: inline-flex; align-items: center; gap: 5px; color: #72726e; font-size: .7rem; }
 .car-owner-section small svg { color: #f1b300; }

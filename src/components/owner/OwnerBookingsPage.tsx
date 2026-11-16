@@ -5,6 +5,7 @@ import { bookingStatusLabel } from "../../booking/booking-status";
 import { formatBookingDate, formatBookingMoney } from "../../booking/booking-display";
 import { getOwnerBookings, type OwnerBooking } from "../../owner/owner-api";
 import { ReturnReview } from "../booking/ReturnReview";
+import { PhoneContact } from "../common/PhoneContact";
 import "./owner-bookings.css";
 
 export function OwnerBookingsPage() {
@@ -65,7 +66,8 @@ export function OwnerBookingsPage() {
           <div className="owner-booking-details">
             <div className="owner-booking-title"><h2>{item.vehicleName}</h2><span className={`booking-status status-${item.status.toLowerCase()}`}>{bookingStatusLabel(item.status)}</span></div>
             <p className="owner-booking-plate">{item.plateNumber}</p>
-            <p><strong>Khách thuê:</strong> {item.customerName}{item.customerPhone ? ` · ${item.customerPhone}` : ""}</p>
+            <p><strong>Khách thuê:</strong> {item.customerName}</p>
+            <p><PhoneContact phone={item.customerPhone} label="Số điện thoại khách thuê" /></p>
             <p><strong>Thời gian:</strong> {formatBookingDate(item.startAt)} – {formatBookingDate(item.endAt)}</p>
             <p><strong>Hình thức:</strong> {item.rentalType === "Hourly" ? "Thuê theo giờ" : "Thuê theo ngày"}</p>
           </div>
