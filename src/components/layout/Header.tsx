@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CaretDown, List, SignOut, X } from "@phosphor-icons/react";
+import { CaretDown, List, PhoneCall, SignOut, X } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
 import { AuthModal, type AuthMode } from "../auth/AuthModal";
 
@@ -57,9 +57,15 @@ export function Header() {
   return (
     <header className="site-header">
       <div className="container header-inner">
-        <a className="brand" href="/#top" aria-label="BonBon - về đầu trang">
-          <img src="/assets/brand/bonbon-logo-cropped.webp" alt="BonBon" />
-        </a>
+        <div className="header-brand-group">
+          <a className="brand" href="/#top" aria-label="BonBon - về đầu trang">
+            <img src="/assets/brand/bonbon-logo-cropped.webp" alt="BonBon" />
+          </a>
+          <a className="header-hotline" href="tel:0376343023" aria-label="Gọi hotline 0376343023">
+            <PhoneCall size={18} weight="fill" />
+            <span><small>Hotline</small><strong>0376343023</strong></span>
+          </a>
+        </div>
 
         <nav className="desktop-nav" aria-label="Điều hướng chính">
           {links.map((link) => (
