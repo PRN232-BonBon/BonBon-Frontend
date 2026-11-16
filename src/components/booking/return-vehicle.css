@@ -1,0 +1,42 @@
+.return-form-slot { grid-column: 1 / -1; }
+.return-form { display: grid; gap: 12px; border-top: 1px dashed #e6e4dc; padding-top: 14px; }
+.return-form header { display: grid; gap: 5px; }
+.return-form h3 { margin: 0; color: #222; font-size: 14px; font-weight: 800; }
+.return-form header p { margin: 0; color: #757575; font-size: 12px; line-height: 1.5; }
+.return-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.return-grid label { display: grid; gap: 6px; color: #444; font-size: 12px; font-weight: 700; }
+.return-grid input,
+.return-grid textarea { width: 100%; border: 1px solid #dcdad2; border-radius: 7px; padding: 9px 11px; background: #fff; color: #222; font: inherit; font-size: 13px; outline: 0; resize: vertical; }
+.return-grid input:focus,
+.return-grid textarea:focus { border-color: #dca600; box-shadow: 0 0 0 3px rgb(244 176 0 / .15); }
+.return-wide { grid-column: 1 / -1; }
+.return-error { margin: 0; color: #9c3027; font-size: 12px; }
+.return-actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+.return-actions button { min-height: 37px; border: 1px solid transparent; border-radius: 7px; padding: 8px 14px; cursor: pointer; font-size: 12px; font-weight: 750; }
+.return-actions .primary { background: #f4b000; color: #241b04; }
+.return-actions .primary:hover:not(:disabled) { background: #dda000; }
+.return-actions .secondary { border-color: #e2dfd9; background: #fff; color: #444; }
+.return-actions button:disabled { opacity: .6; cursor: wait; }
+
+.return-trigger { display: inline-flex; min-height: 37px; align-items: center; justify-content: center; border: 0; border-radius: 7px; padding: 7px 12px; background: #f4b000; color: #241b04; cursor: pointer; font-size: 12px; font-weight: 750; line-height: 1.25; text-align: center; }
+.return-trigger:hover { background: #dda000; }
+.trip-actions .return-trigger { width: 156px; }
+.owner-booking-decision .return-trigger { width: 100%; padding: 8px; }
+
+.return-result { grid-column: 1 / -1; margin: 0; border-radius: 8px; padding: 10px 13px; background: #eaf5ec; color: #2b693e; font-size: 12.5px; line-height: 1.5; }
+
+.return-review { display: grid; gap: 12px; border-top: 1px solid #e6e4dc; padding-top: 18px; }
+.return-review h3 { margin: 0; font-size: 15px; }
+.return-review p { margin: 0; color: #6b6b6b; font-size: 13px; line-height: 1.5; }
+.return-review-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.return-review-stats div { display: grid; gap: 8px; border-radius: 8px; padding: 14px; background: #f8f7f3; }
+.return-review-stats span { color: #777; font-size: 12px; }
+.return-review-stats strong { font-size: 14px; }
+.return-review-fee { display: flex; justify-content: space-between; gap: 12px; padding: 13px; background: #fff8e5; border-radius: 8px; font-size: 13px; }
+.return-review-fee strong { color: #946700; }
+
+@media (max-width: 820px) {
+  .return-grid { grid-template-columns: minmax(0, 1fr); }
+  .return-review-stats { grid-template-columns: repeat(2, 1fr); }
+  .trip-actions .return-trigger { width: auto; }
+}

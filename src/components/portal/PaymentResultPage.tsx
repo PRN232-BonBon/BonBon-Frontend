@@ -14,7 +14,7 @@ export function PaymentResultPage() {
   const failed = status && ["Failed", "Cancelled", "Refunded"].includes(status.status);
   return <><div className="portal-title-row"><h1>Kết quả thanh toán</h1></div><article className="portal-card payment-result-card">
     {!id ? <div className="payment-outcome"><WarningCircle size={56} /><h3>Không thể xác minh kết quả</h3><p>{params.get("returnError") === "unavailable" ? "Thanh toán trực tuyến hiện chưa khả dụng. Chưa có xác nhận thanh toán thành công." : "Đường dẫn thiếu mã giao dịch hợp lệ hoặc cổng thanh toán chưa sẵn sàng. Vui lòng kiểm tra đơn trong Chuyến của tôi."}</p></div>
-      : paid ? <div className="payment-outcome payment-success"><CheckCircle size={64} weight="duotone" /><h3>Thanh toán thành công</h3><p>Hệ thống đã ghi nhận {money(status!.amount)}. Chuyến của bạn đã được xác nhận.</p></div>
+      : paid ? <div className="payment-outcome payment-success"><CheckCircle size={64} weight="duotone" /><h3>Thanh toán thành công</h3><p>Đã ghi nhận {money(status!.amount)}. Bạn có thể xem tình trạng chuyến trong Chuyến của tôi.</p></div>
       : status?.requiresReconciliation ? <div className="payment-outcome"><WarningCircle size={56} /><h3>Giao dịch cần đối soát</h3><p>Không thanh toán lại khi chưa rõ kết quả. Vui lòng liên hệ quản trị viên.</p></div>
       : failed ? <div className="payment-outcome"><WarningCircle size={56} /><h3>Thanh toán chưa thành công</h3><p>Giao dịch thất bại hoặc đã bị hủy. Vui lòng xem lại đơn hàng.</p></div>
       : <div className="payment-outcome"><Clock size={56} /><h3>Đang xác minh thanh toán</h3><p>BonBon đang kiểm tra giao dịch. Vui lòng kiểm tra lại sau và không thanh toán thêm khi chưa rõ kết quả.</p></div>}

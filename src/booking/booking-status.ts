@@ -1,13 +1,13 @@
 const statusLabels: Record<string, string> = {
   PendingApproval: "Chờ xác nhận", AwaitingPayment: "Chờ thanh toán",
   Confirmed: "Đã thanh toán", ReadyForPickup: "Sẵn sàng nhận xe", InProgress: "Đang thuê",
-  Returned: "Đã trả xe", AwaitingSettlement: "Chờ quyết toán", Completed: "Hoàn thành",
+  Returned: "Chờ chủ xe xác nhận", AwaitingSettlement: "Chờ thanh toán phụ phí", Completed: "Đã kết thúc",
   Cancelled: "Đã hủy", Rejected: "Đã từ chối",
 };
 
 export function bookingStatusLabel(status: string) { return statusLabels[status] ?? "Đang cập nhật"; }
 export function canPayBooking(booking: { status: string; startAt: string }, now = Date.now()) {
-  return booking.status === "AwaitingPayment" && Date.parse(booking.startAt) > now;
+  return booking.status === "AwaitingSettlement" || (booking.status === "AwaitingPayment" && Date.parse(booking.startAt) > now);
 }
 export function isPaidBooking(status: string) {
   return ["Confirmed", "ReadyForPickup", "InProgress", "Returned", "AwaitingSettlement", "Completed"].includes(status);

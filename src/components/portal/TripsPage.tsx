@@ -10,6 +10,8 @@ import { PaymentModal } from "../booking/PaymentModal";
 import { ShareLocationControl } from "../tracking/ShareLocationControl";
 import { PickupConfirmationModal } from "./PickupConfirmationModal";
 import { EmptyState } from "./EmptyState";
+import { ReturnVehicleForm } from "../booking/ReturnVehicleForm";
+import { returnSummary, type ExcessMileageResult } from "../../booking/return-api";
 import "./trips.css";
 
 const historyStatuses = new Set(["Completed", "Cancelled", "Rejected"]);
@@ -28,6 +30,8 @@ export function TripsPage() {
     return bookingId ? { kind: "payment", bookingId } : null;
   });
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [returningId, setReturningId] = useState<string | null>(null);
+  const [returnResult, setReturnResult] = useState<{ bookingId: string; text: string } | null>(null);
   const priorAccount = useRef<string | null>(null);
   useEffect(() => {
     const account = session?.account.accountId ?? null;
@@ -71,6 +75,12 @@ export function TripsPage() {
     }
   }, [session, cancellingId, load]);
 
+  const handleReturned = useCallback((bookingId: string, result: ExcessMileageResult) => {
+    setReturningId(null);
+    setReturnResult({ bookingId, text: returnSummary(result) });
+    void load();
+  }, [load]);
+
   const ownsItems = itemsOwner === session?.account.accountId;
   const visible = ownsItems ? items.filter((item) => tab === "history" ? historyStatuses.has(item.status) : !historyStatuses.has(item.status)) : [];
   return <>
@@ -92,12 +102,19 @@ export function TripsPage() {
             {item.status === "InProgress" && session ? <ShareLocationControl bookingId={item.bookingId} session={session} /> : null}
             {canConfirmPickup(item.status) ? <button className="trip-pay" type="button"
               onClick={event => { event.stopPropagation(); setView({ kind: "pickup", bookingId: item.bookingId }); }}>Đã nhận xe</button> : null}
-            {!historyStatuses.has(item.status) && item.status !== "InProgress" && !canConfirmPickup(item.status) ? <button className="trip-pay" type="button" disabled={!canPayBooking(item)} title={item.status === "PendingApproval" ? "Đơn đặt cũ đang chờ xử lý" : undefined}
-              onClick={event => { event.stopPropagation(); if (canPayBooking(item)) setView({ kind: "payment", bookingId: item.bookingId }); }}><CreditCard size={18} />{isPaidBooking(item.status) ? "Đã thanh toán" : "Thanh toán"}</button> : null}
+            {item.status === "InProgress" && returningId !== item.bookingId ? <button className="return-trigger" type="button"
+              onClick={event => { event.stopPropagation(); setReturningId(item.bookingId); }}>Trả xe</button> : null}
+            {["AwaitingPayment", "PendingApproval", "AwaitingSettlement"].includes(item.status) ? <button className="trip-pay" type="button" disabled={!canPayBooking(item)} title={item.status === "PendingApproval" ? "Đơn đặt cũ đang chờ xử lý" : undefined}
+              onClick={event => { event.stopPropagation(); if (canPayBooking(item)) setView({ kind: "payment", bookingId: item.bookingId }); }}><CreditCard size={18} />{item.status === "AwaitingSettlement" ? "Thanh toán phụ phí" : isPaidBooking(item.status) ? "Đã thanh toán" : "Thanh toán"}</button> : null}
             {canCancelBooking(item.status) ? <button className="trip-cancel" type="button" disabled={cancellingId === item.bookingId}
               onClick={event => { event.stopPropagation(); void handleCancel(item.bookingId); }}>{cancellingId === item.bookingId ? "Đang hủy…" : "Hủy đơn"}</button> : null}
             <button className="trip-view-detail" type="button" onClick={event => { event.stopPropagation(); setView({ kind: "detail", bookingId: item.bookingId }); }}>Xem chi tiết<CaretRight size={15} /></button>
           </div>
+          {returningId === item.bookingId && session ? <div className="return-form-slot" onClick={event => event.stopPropagation()}>
+            <ReturnVehicleForm bookingId={item.bookingId} session={session} title="Trả xe" submitLabel="Trả xe"
+              onClose={() => setReturningId(null)} onReturned={(result) => handleReturned(item.bookingId, result)} />
+          </div> : null}
+          {returnResult?.bookingId === item.bookingId ? <p className="return-result" role="status" onClick={event => event.stopPropagation()}>{returnResult.text}</p> : null}
         </article>)}</div>}
     </article>
     {ownsItems && view?.kind === "detail" ? <OrderDetailModal bookingId={view.bookingId} onClose={() => setView(null)} onCancelled={() => { setView(null); void load(); }} onPayment={() => setView({ kind: "payment", bookingId: view.bookingId })} /> : null}

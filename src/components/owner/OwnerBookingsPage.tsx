@@ -4,6 +4,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { bookingStatusLabel } from "../../booking/booking-status";
 import { formatBookingDate, formatBookingMoney } from "../../booking/booking-display";
 import { getOwnerBookings, type OwnerBooking } from "../../owner/owner-api";
+import { ReturnReview } from "../booking/ReturnReview";
 import "./owner-bookings.css";
 
 export function OwnerBookingsPage() {
@@ -12,6 +13,8 @@ export function OwnerBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [returningId, setReturningId] = useState<string | null>(null);
+  const [returnResult, setReturnResult] = useState<{ bookingId: string; text: string } | null>(null);
   const requestRef = useRef<AbortController | null>(null);
   const selectedId = new URLSearchParams(window.location.search).get("bookingId");
 
@@ -42,6 +45,12 @@ export function OwnerBookingsPage() {
     if (selectedId && !loading) document.getElementById(`owner-booking-${selectedId}`)?.scrollIntoView({ block: "center" });
   }, [selectedId, loading]);
 
+  const handleReturned = (bookingId: string) => {
+    setReturningId(null);
+    setReturnResult({ bookingId, text: "Đã xác nhận nhận lại xe." });
+    void load();
+  };
+
   return <>
     <div className="portal-title-row owner-bookings-heading">
       <div><h1>Đơn thuê xe</h1><p>Theo dõi các đơn thuê xe của khách.</p></div>
@@ -62,7 +71,17 @@ export function OwnerBookingsPage() {
           </div>
           <div className="owner-booking-actions">
             <strong>{formatBookingMoney(item.totalAmount)}</strong>
+            {item.status === "Returned" && returningId !== item.bookingId
+              ? <div className="owner-booking-decision"><button className="return-trigger" type="button" onClick={() => setReturningId(item.bookingId)}>Kiểm tra trả xe</button></div>
+              : null}
           </div>
+
+          {returningId === item.bookingId && session ? <div className="return-form-slot">
+            <ReturnReview bookingId={item.bookingId} session={session}
+              onClose={() => setReturningId(null)} onConfirmed={() => handleReturned(item.bookingId)} />
+          </div> : null}
+
+          {returnResult?.bookingId === item.bookingId ? <p className="return-result" role="status">{returnResult.text}</p> : null}
         </article>)}</div>}
     </article>
   </>;

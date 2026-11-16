@@ -68,8 +68,8 @@ async function request<T>(path: string, session: AuthSession, init: RequestInit 
 
 const pending = new Map<string, Promise<PaymentCheckout>>();
 interface Action { key: string; paymentId?: string }
-function keyFor(session: AuthSession, bookingId: string, provider: PaymentProvider) {
-  const scope = `bonbon.payment.sepay.v1:${session.account.accountId}:${bookingId}`;
+function keyFor(session: AuthSession, bookingId: string, provider: PaymentProvider, purpose: "rental" | "settlement") {
+  const scope = `bonbon.payment.sepay.v1:${session.account.accountId}:${bookingId}${purpose === "settlement" ? ":settlement" : ""}`;
   try {
     const raw = localStorage.getItem(scope);
     let action: Action;
@@ -115,10 +115,10 @@ async function checkoutFor(bookingId: string, session: AuthSession, scope: strin
 
 // Reuse the same key after network failures, double clicks, remounts and refreshes.
 // Never automatically create a new payment attempt after an uncertain result.
-export async function createPayment(bookingId: string, session: AuthSession, provider: PaymentProvider = checkoutProvider) {
+export async function createPayment(bookingId: string, session: AuthSession, provider: PaymentProvider = checkoutProvider, purpose: "rental" | "settlement" = "rental") {
   requireCustomer(session);
   if (!isPaymentId(bookingId)) throw new PaymentApiError("INVALID_RESPONSE");
-  const { scope, action } = keyFor(session, bookingId, provider);
+  const { scope, action } = keyFor(session, bookingId, provider, purpose);
   const existing = pending.get(scope);
   if (existing) return existing;
   const promise = checkoutFor(bookingId, session, scope, action, provider)

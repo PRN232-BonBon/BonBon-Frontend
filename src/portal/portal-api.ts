@@ -29,6 +29,8 @@ export interface BookingDetail {
     pickupAddress: string; seats: number; transmission: string; fuelType: string };
   customer: { customerId: string; fullName: string; email: string; phone: string | null };
   owner: { ownerId: string; fullName: string; email: string; phone: string | null };
+  inspections: { kind: "Pickup" | "Return"; odometerKm: number | null; fuelLevel: number | null; conditionNotes: string | null }[];
+  additionalCharges: { additionalChargeId: string; reasonCode: string; description: string; amount: number; currency: string; status: string }[];
 }
 
 async function api<T>(path: string, session: AuthSession, init?: RequestInit) {

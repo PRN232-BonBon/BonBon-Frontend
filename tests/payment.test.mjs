@@ -42,6 +42,11 @@ test("approval, future pickup and payment state are all required", () => {
   assert.equal(bookingStatusLabel("AwaitingPayment"), "Chờ thanh toán");
   assert.equal(bookingStatusLabel("Confirmed"), "Đã thanh toán");
 });
+test("settlement is payable after the rental dates, but returned cars wait for owner confirmation", () => {
+  assert.equal(canPayBooking({ status: "Returned", startAt: "2000-01-01" }), false);
+  assert.equal(canPayBooking({ status: "AwaitingSettlement", startAt: "2000-01-01" }), true);
+  assert.equal(bookingStatusLabel("Completed"), "Đã kết thúc");
+});
 
 test("checkout rejects an untrusted action", () => assert.equal(isSafeCheckoutForm({action:"https://evil.invalid", method:"POST", fields:[]}), false));
 test("success requires the backend receipt with no reconciliation flag", () => {
@@ -62,6 +67,19 @@ test("concurrent checkout opens issue only one POST with no client amount or sta
   const account = session("account-concurrent");
   await Promise.all([createPayment(bookingId, account), createPayment(bookingId, account)]);
   assert.equal(calls, 1);
+});
+test("rental and excess-mileage settlement use different persistent idempotency keys", async context => {
+  const keys = [];
+  context.mock.method(globalThis, "fetch", async (_, init) => {
+    keys.push(init.headers["Idempotency-Key"]);
+    assert.deepEqual(JSON.parse(init.body), { bookingId, provider: "SEPAY_SANDBOX" });
+    return Response.json(payment());
+  });
+  const account = session("account-return");
+  await createPayment(bookingId, account);
+  await createPayment(bookingId, account, undefined, "settlement");
+  assert.equal(keys.length, 2);
+  assert.notEqual(keys[0], keys[1]);
 });
 test("uncertain network retry preserves the original idempotency key", async context => {
   const keys = [];
