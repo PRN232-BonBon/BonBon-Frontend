@@ -23,4 +23,19 @@
 .trip-cancel:disabled { opacity: 0.6; cursor: wait; }
 .trip-view-detail { display: inline-flex; align-items: center; gap: 3px; border: 0; padding: 3px 0; background: transparent; color: #62625e; cursor: pointer; font-size: 12px; font-weight: 650; }
 .trip-view-detail:hover { color: #242424; }
+.pickup-confirmation-modal { width: min(520px, calc(100vw - 32px)); }
+.pickup-confirmation { display: grid; gap: 12px; }
+.pickup-confirmation > p:first-child { margin: 0 0 8px; color: #62625e; font-size: 14px; line-height: 1.6; }
+.pickup-confirmation label { color: #242424; font-size: 14px; font-weight: 700; }
+.pickup-confirmation label span { color: #b33b28; }
+.pickup-odometer { display: flex; align-items: center; border: 1px solid #d9d8d3; border-radius: 8px; overflow: hidden; }
+.pickup-odometer:focus-within { border-color: #c58e00; outline: 2px solid #ffe4a0; }
+.pickup-odometer input { min-width: 0; width: 100%; border: 0; outline: 0; padding: 13px; font-size: 15px; }
+.pickup-odometer span { padding: 0 14px; color: #72726c; font-size: 13px; }
+.pickup-confirmation small { color: #72726c; line-height: 1.5; }
+.pickup-actions { display: flex; gap: 12px; margin-top: 14px; }
+.pickup-actions button { flex: 1; min-height: 44px; border-radius: 7px; padding: 10px 12px; cursor: pointer; font-size: 13px; font-weight: 700; }
+.pickup-actions .booking-confirmation-cancel { border: 1px solid #d9d8d3; background: #fff; color: #333; }
+.pickup-actions .booking-confirmation-submit { border: 1px solid var(--accent); background: var(--accent); color: #241b04; }
+.pickup-actions button:disabled { opacity: .6; cursor: wait; }
 @media (prefers-reduced-motion: reduce) { .trip-item { transition: none; } }

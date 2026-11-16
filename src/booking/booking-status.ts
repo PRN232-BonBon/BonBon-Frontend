@@ -13,6 +13,10 @@ export function isPaidBooking(status: string) {
   return ["Confirmed", "ReadyForPickup", "InProgress", "Returned", "AwaitingSettlement", "Completed"].includes(status);
 }
 
+export function canConfirmPickup(status: string) {
+  return status === "Confirmed" || status === "ReadyForPickup";
+}
+
 const cancellableStatuses = new Set(["PendingApproval", "AwaitingPayment"]);
 
 export function canCancelBooking(status: string) {

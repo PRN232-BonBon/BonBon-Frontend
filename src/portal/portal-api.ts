@@ -61,6 +61,19 @@ export async function cancelBooking(bookingId: string, session: AuthSession): Pr
   return api<{ message: string }>(`/bookings/${encodeURIComponent(bookingId)}/cancel`, session, { method: "POST" });
 }
 
+export interface PickupInspection {
+  odometerKm: number;
+  fuelLevel?: number;
+  conditionNotes?: string;
+}
+
+export async function confirmPickup(bookingId: string, session: AuthSession, inspection: PickupInspection): Promise<void> {
+  await api<unknown>(`/bookings/${encodeURIComponent(bookingId)}/pickup`, session, {
+    method: "POST",
+    body: JSON.stringify(inspection),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Hồ sơ tài khoản
 // ---------------------------------------------------------------------------

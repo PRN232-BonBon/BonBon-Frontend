@@ -60,13 +60,13 @@ createServer(async (request, response) => {
     if (request.url === "/__state") return send(200, { scenario, quoteRequests, bookingRequests, paymentRequests });
     if (request.url === "/__scenario" && request.method === "POST") { scenario = body.scenario || "available"; return send(200, { scenario }); }
     if (request.url === "/api/vehicles") return send(200, [vehicle]);
-    if (request.url === "/api/bookings/quote") {
+    if (request.url === "/api/bookings/price-estimates") {
       quoteRequests++;
       if (scenario === "quote-error") return send(503, { detail: "Không thể tải báo giá. Vui lòng thử lại." });
       if (scenario === "slow") await new Promise(resolve => setTimeout(resolve, 3000));
       return send(200, quote(body));
     }
-    if (request.url === "/api/bookings/validate-window") return send(200, { ...body, billableUnits: quote(body).billableUnits, unitLabel: body.rentalType === "Hourly" ? "giờ" : "ngày" });
+    if (request.url === "/api/rentals/time-validations") return send(200, { ...body, billableUnits: quote(body).billableUnits, unitLabel: body.rentalType === "Hourly" ? "giờ" : "ngày" });
     if (["/api/auth/login", "/api/auth/refresh"].includes(request.url)) return send(200, {
       accessToken: "local-preview-token-not-a-credential", refreshToken: "local-preview-refresh-not-a-credential",
       accessTokenExpiresAt: Math.floor(Date.now() / 1000) + 3600,
@@ -78,7 +78,14 @@ createServer(async (request, response) => {
       createdBooking = { bookingId: "80000000-0000-0000-0000-000000000001", ...quote(body), vehicleName: "Toyota Vios 2026", plateNumber: "TEST", coverImageUrl: vehicle.imageUrl, status: "PendingApproval", createdAt: new Date().toISOString() };
       return send(201, createdBooking);
     }
-    if (request.url === "/api/bookings/mine") return send(200, [...(createdBooking ? [{ ...createdBooking, totalAmount: createdBooking.quotedRentalAmount }] : []), ...fixtures]);
+    if (request.url === "/api/bookings?participantRole=customer") return send(200, [...(createdBooking ? [{ ...createdBooking, totalAmount: createdBooking.quotedRentalAmount }] : []), ...fixtures]);
+    if (request.method === "POST" && /^\/api\/bookings\/[^/]+\/pickup$/.test(request.url ?? "")) {
+      const booking = fixtures.find(item => request.url === `/api/bookings/${item.bookingId}/pickup`);
+      if (!booking || !["Confirmed", "ReadyForPickup"].includes(booking.status)) return send(400, { detail: "Đơn không ở trạng thái chờ nhận xe." });
+      if (typeof body.odometerKm !== "number" || body.odometerKm < 0) return send(400, { detail: "Số km không hợp lệ." });
+      booking.status = "InProgress";
+      return send(200, { kind: "Pickup", odometerKm: body.odometerKm });
+    }
     if (request.url?.startsWith("/api/bookings/") && request.method === "GET") {
       const booking = fixtures.find(item => request.url.endsWith(item.bookingId));
       return booking ? send(200, detail(booking)) : send(404, { detail: "Không tìm thấy đơn kiểm thử." });

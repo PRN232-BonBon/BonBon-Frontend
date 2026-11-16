@@ -2,17 +2,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowClockwise, CalendarBlank, CaretRight, CreditCard, MapPin } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
 import { getMyBookings, cancelBooking, type CustomerBooking } from "../../portal/portal-api";
-import { bookingStatusLabel, canCancelBooking, canPayBooking, isPaidBooking } from "../../booking/booking-status";
+import { bookingStatusLabel, canCancelBooking, canConfirmPickup, canPayBooking, isPaidBooking } from "../../booking/booking-status";
 import { formatBookingDate, formatBookingMoney as money } from "../../booking/booking-display";
 import { paymentErrorMessage } from "../../payment/payment-api";
 import { OrderDetailModal } from "../booking/OrderDetailModal";
 import { PaymentModal } from "../booking/PaymentModal";
 import { ShareLocationControl } from "../tracking/ShareLocationControl";
+import { PickupConfirmationModal } from "./PickupConfirmationModal";
 import { EmptyState } from "./EmptyState";
 import "./trips.css";
 
 const historyStatuses = new Set(["Completed", "Cancelled", "Rejected"]);
-type View = { kind: "detail" | "payment"; bookingId: string } | null;
+type View = { kind: "detail" | "payment" | "pickup"; bookingId: string } | null;
 
 export function TripsPage() {
   const { session } = useAuth();
@@ -89,7 +90,9 @@ export function TripsPage() {
           </div>
           <div className="trip-actions"><strong className="trip-price">{money(item.totalAmount)}</strong>
             {item.status === "InProgress" && session ? <ShareLocationControl bookingId={item.bookingId} session={session} /> : null}
-            {!historyStatuses.has(item.status) && item.status !== "InProgress" ? <button className="trip-pay" type="button" disabled={!canPayBooking(item)} title={item.status === "PendingApproval" ? "Đơn đặt cũ đang chờ xử lý" : undefined}
+            {canConfirmPickup(item.status) ? <button className="trip-pay" type="button"
+              onClick={event => { event.stopPropagation(); setView({ kind: "pickup", bookingId: item.bookingId }); }}>Đã nhận xe</button> : null}
+            {!historyStatuses.has(item.status) && item.status !== "InProgress" && !canConfirmPickup(item.status) ? <button className="trip-pay" type="button" disabled={!canPayBooking(item)} title={item.status === "PendingApproval" ? "Đơn đặt cũ đang chờ xử lý" : undefined}
               onClick={event => { event.stopPropagation(); if (canPayBooking(item)) setView({ kind: "payment", bookingId: item.bookingId }); }}><CreditCard size={18} />{isPaidBooking(item.status) ? "Đã thanh toán" : "Thanh toán"}</button> : null}
             {canCancelBooking(item.status) ? <button className="trip-cancel" type="button" disabled={cancellingId === item.bookingId}
               onClick={event => { event.stopPropagation(); void handleCancel(item.bookingId); }}>{cancellingId === item.bookingId ? "Đang hủy…" : "Hủy đơn"}</button> : null}
@@ -99,5 +102,7 @@ export function TripsPage() {
     </article>
     {ownsItems && view?.kind === "detail" ? <OrderDetailModal bookingId={view.bookingId} onClose={() => setView(null)} onCancelled={() => { setView(null); void load(); }} onPayment={() => setView({ kind: "payment", bookingId: view.bookingId })} /> : null}
     {ownsItems && view?.kind === "payment" ? <PaymentModal bookingId={view.bookingId} onClose={() => setView(null)} onPaid={onPaid} /> : null}
+    {ownsItems && view?.kind === "pickup" && session ? <PickupConfirmationModal bookingId={view.bookingId} session={session}
+      onClose={() => setView(null)} onConfirmed={() => { setView(null); void load(); }} /> : null}
   </>;
 }

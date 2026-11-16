@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canPayBooking, bookingStatusLabel } from "../src/booking/booking-status.ts";
+import { canConfirmPickup, canPayBooking, bookingStatusLabel } from "../src/booking/booking-status.ts";
 import { createPayment, getPaymentStatus, isSafeCheckoutForm, verifiedPaymentSucceeded } from "../src/payment/payment-api.ts";
-import { getBookingDetail } from "../src/portal/portal-api.ts";
+import { confirmPickup, getBookingDetail } from "../src/portal/portal-api.ts";
 
 const future = "2099-01-01T00:00:00Z";
 const session = id => ({ accessToken: "test-token", account: { accountId: id, roles: ["Customer"] } });
@@ -13,6 +13,24 @@ const storage=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setIt
 Object.defineProperty(globalThis,"localStorage",{value:storage(),configurable:true});
 Object.defineProperty(globalThis,"sessionStorage",{value:storage(),configurable:true});
 test.beforeEach(()=>{localStorage.clear();sessionStorage.clear()});
+test("only paid bookings awaiting handover can confirm pickup", () => {
+  for (const status of ["Confirmed", "ReadyForPickup"]) assert.equal(canConfirmPickup(status), true);
+  for (const status of ["PendingApproval", "AwaitingPayment", "InProgress", "Completed", "Cancelled"]) assert.equal(canConfirmPickup(status), false);
+});
+test("pickup submits the actual odometer with the customer session", async context => {
+  context.mock.method(globalThis, "fetch", async (url, init) => {
+    assert.equal(url, "/api/bookings/order%2F1/pickup");
+    assert.equal(init.method, "POST");
+    assert.equal(init.headers.Authorization, "Bearer test-token");
+    assert.deepEqual(JSON.parse(init.body), { odometerKm: 15000 });
+    return Response.json({ kind: "Pickup", odometerKm: 15000 });
+  });
+  await confirmPickup("order/1", session("customer"), { odometerKm: 15000 });
+});
+test("pickup surfaces backend errors instead of claiming success", async context => {
+  context.mock.method(globalThis, "fetch", async () => Response.json({ detail: "Đơn không còn chờ nhận xe." }, { status: 400 }));
+  await assert.rejects(confirmPickup("order-1", session("customer"), { odometerKm: 1 }), /Đơn không còn chờ nhận xe/);
+});
 for (const status of ["PendingApproval", "Confirmed", "ReadyForPickup", "InProgress", "Returned", "Completed", "Cancelled", "Rejected", "unknown"]) {
   test(`${status} never enables a new payment`, () => assert.equal(canPayBooking({ status, startAt: future }), false));
 }
