@@ -57,6 +57,10 @@ export async function getBookingDetail(bookingId: string, session: AuthSession, 
   return { ...detail, vehicle: { ...detail.vehicle, coverImageUrl: resolveBookingImage(detail.vehicle.coverImageUrl) } };
 }
 
+export async function cancelBooking(bookingId: string, session: AuthSession): Promise<{ message: string }> {
+  return api<{ message: string }>(`/bookings/${encodeURIComponent(bookingId)}/cancel`, session, { method: "POST" });
+}
+
 // ---------------------------------------------------------------------------
 // Hồ sơ tài khoản
 // ---------------------------------------------------------------------------

@@ -12,3 +12,9 @@ export function canPayBooking(booking: { status: string; startAt: string }, now 
 export function isPaidBooking(status: string) {
   return ["Confirmed", "ReadyForPickup", "InProgress", "Returned", "AwaitingSettlement", "Completed"].includes(status);
 }
+
+const cancellableStatuses = new Set(["PendingApproval", "AwaitingPayment"]);
+
+export function canCancelBooking(status: string) {
+  return cancellableStatuses.has(status);
+}

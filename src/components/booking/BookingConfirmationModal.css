@@ -98,6 +98,9 @@
 .booking-confirmation-actions button { display: flex; min-height: 56px; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--accent); border-radius: 6px; padding: 12px 18px; cursor: pointer; font-size: 16px; font-weight: 750; transition: background 160ms ease, border-color 160ms ease; }
 .booking-confirmation-cancel { background: #fff; color: #936700; }
 .booking-confirmation-cancel:hover:not(:disabled) { background: #fffaf0; }
+.booking-confirmation-cancel.order-cancel { border-color: #d8c9c4; color: #8b4339; }
+.booking-confirmation-cancel.order-cancel:hover:not(:disabled) { background: #f9eeeb; border-color: #8b4339; }
+.booking-confirmation-actions:has(> button:nth-child(3)) { grid-template-columns: 1fr 1fr 1fr; }
 .booking-confirmation-submit { background: var(--accent); color: #241b04; }
 .booking-confirmation-submit:hover:not(:disabled) { border-color: #dda000; background: #dda000; }
 .booking-confirmation-actions button:disabled, .booking-confirmation-header button:disabled { cursor: not-allowed; opacity: .5; }

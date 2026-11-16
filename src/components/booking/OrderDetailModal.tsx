@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import { CalendarBlank, CaretRight, IdentificationCard, Info, MapPin, MapTrifold, ShieldCheck, SpinnerGap, SteeringWheel, Tag, UserCircle } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
-import { getBookingDetail, type BookingDetail } from "../../portal/portal-api";
-import { bookingStatusLabel, canPayBooking, isPaidBooking } from "../../booking/booking-status";
+import { getBookingDetail, cancelBooking, type BookingDetail } from "../../portal/portal-api";
+import { bookingStatusLabel, canCancelBooking, canPayBooking, isPaidBooking } from "../../booking/booking-status";
 import { formatBookingDate, formatBookingMoney as money } from "../../booking/booking-display";
 import { paymentErrorMessage } from "../../payment/payment-api";
 import { BookingModalShell } from "./BookingModalShell";
 import "./payment.css";
 
-export function OrderDetailModal({ bookingId, onClose, onPayment }: { bookingId: string; onClose: () => void; onPayment: () => void }) {
+export function OrderDetailModal({ bookingId, onClose, onPayment, onCancelled }: { bookingId: string; onClose: () => void; onPayment: () => void; onCancelled?: () => void }) {
   const { session } = useAuth();
   const [detail, setDetail] = useState<BookingDetail | null>(null);
   const [error, setError] = useState(""); const [attempt, setAttempt] = useState(0);
+  const [cancelling, setCancelling] = useState(false);
   useEffect(() => {
     if (!session) return;
     const controller = new AbortController();
@@ -24,6 +25,22 @@ export function OrderDetailModal({ bookingId, onClose, onPayment }: { bookingId:
     return () => controller.abort();
   }, [bookingId, session, attempt]);
   const unit = detail?.rentalType === "Hourly" ? "giờ" : "ngày";
+
+  const handleCancel = async () => {
+    if (!session || !detail || cancelling) return;
+    if (!window.confirm("Bạn chắc chắn muốn hủy đơn đặt xe này? Hành động này không thể hoàn tác.")) return;
+    setCancelling(true);
+    setError("");
+    try {
+      await cancelBooking(bookingId, session);
+      onClose();
+      onCancelled?.();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Không thể hủy đơn đặt xe.");
+    } finally {
+      setCancelling(false);
+    }
+  };
   return <BookingModalShell title="Chi tiết đơn hàng" onClose={onClose}>
     {!detail && !error ? <div className="booking-confirmation-loading" role="status"><SpinnerGap className="booking-confirmation-spinner" size={24} />Đang tải đơn hàng…</div> : null}
     {error ? <div className="booking-confirmation-error" role="alert"><p>{error}</p><button type="button" onClick={() => setAttempt(value => value + 1)}>Thử lại</button></div> : null}
@@ -54,7 +71,7 @@ export function OrderDetailModal({ bookingId, onClose, onPayment }: { bookingId:
         {detail.discountAmount > 0 ? <div className="booking-confirmation-discount"><dt><span><Tag size={18} />Chương trình giảm giá</span><small>Giảm {detail.weeklyDiscountPercent}% khi thuê từ 7 ngày</small></dt><dd>-{money(detail.discountAmount)}</dd></div> : null}
         <div className="booking-confirmation-total"><dt>Thành tiền</dt><dd>{money(detail.quotedRentalAmount)}</dd></div>
       </dl><p className="booking-confirmation-muted order-price-note">Giá và điều khoản đã lưu lúc đặt xe, không tính lại theo giá xe hiện tại.</p></section>
-      <footer className="booking-confirmation-actions"><button type="button" className="booking-confirmation-cancel" onClick={onClose}>Đóng</button><button type="button" className="booking-confirmation-submit" disabled={!canPayBooking(detail)} onClick={onPayment}>{isPaidBooking(detail.status) ? "Đã thanh toán" : "Thanh toán"}</button></footer>
+      <footer className="booking-confirmation-actions"><button type="button" className="booking-confirmation-cancel" onClick={onClose}>Đóng</button>{canCancelBooking(detail.status) ? <button type="button" className="booking-confirmation-cancel order-cancel" onClick={handleCancel} disabled={cancelling}>{cancelling ? "Đang hủy…" : "Hủy đơn"}</button> : null}<button type="button" className="booking-confirmation-submit" disabled={!canPayBooking(detail)} onClick={onPayment}>{isPaidBooking(detail.status) ? "Đã thanh toán" : "Thanh toán"}</button></footer>
       {detail.status === "PendingApproval" ? <p className="order-payment-hint">Đơn đặt cũ đang chờ xử lý. Vui lòng liên hệ BonBon để được hỗ trợ.</p> : null}
     </> : null}
   </BookingModalShell>;

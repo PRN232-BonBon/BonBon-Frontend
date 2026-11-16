@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowClockwise, CalendarBlank, CaretRight, CreditCard, MapPin } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
-import { getMyBookings, type CustomerBooking } from "../../portal/portal-api";
-import { bookingStatusLabel, canPayBooking, isPaidBooking } from "../../booking/booking-status";
+import { getMyBookings, cancelBooking, type CustomerBooking } from "../../portal/portal-api";
+import { bookingStatusLabel, canCancelBooking, canPayBooking, isPaidBooking } from "../../booking/booking-status";
 import { formatBookingDate, formatBookingMoney as money } from "../../booking/booking-display";
 import { paymentErrorMessage } from "../../payment/payment-api";
 import { OrderDetailModal } from "../booking/OrderDetailModal";
@@ -26,6 +26,7 @@ export function TripsPage() {
     const bookingId = new URLSearchParams(window.location.search).get("payment");
     return bookingId ? { kind: "payment", bookingId } : null;
   });
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const priorAccount = useRef<string | null>(null);
   useEffect(() => {
     const account = session?.account.accountId ?? null;
@@ -55,6 +56,20 @@ export function TripsPage() {
   }, [load]);
   const onPaid = useCallback(() => { void load(); }, [load]);
 
+  const handleCancel = useCallback(async (bookingId: string) => {
+    if (!session || cancellingId) return;
+    if (!window.confirm("Bạn chắc chắn muốn hủy đơn đặt xe này? Hành động này không thể hoàn tác.")) return;
+    setCancellingId(bookingId);
+    try {
+      await cancelBooking(bookingId, session);
+      await load();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Không thể hủy đơn đặt xe.");
+    } finally {
+      setCancellingId(null);
+    }
+  }, [session, cancellingId, load]);
+
   const ownsItems = itemsOwner === session?.account.accountId;
   const visible = ownsItems ? items.filter((item) => tab === "history" ? historyStatuses.has(item.status) : !historyStatuses.has(item.status)) : [];
   return <>
@@ -76,11 +91,13 @@ export function TripsPage() {
             {item.status === "InProgress" && session ? <ShareLocationControl bookingId={item.bookingId} session={session} /> : null}
             {!historyStatuses.has(item.status) && item.status !== "InProgress" ? <button className="trip-pay" type="button" disabled={!canPayBooking(item)} title={item.status === "PendingApproval" ? "Đơn đặt cũ đang chờ xử lý" : undefined}
               onClick={event => { event.stopPropagation(); if (canPayBooking(item)) setView({ kind: "payment", bookingId: item.bookingId }); }}><CreditCard size={18} />{isPaidBooking(item.status) ? "Đã thanh toán" : "Thanh toán"}</button> : null}
+            {canCancelBooking(item.status) ? <button className="trip-cancel" type="button" disabled={cancellingId === item.bookingId}
+              onClick={event => { event.stopPropagation(); void handleCancel(item.bookingId); }}>{cancellingId === item.bookingId ? "Đang hủy…" : "Hủy đơn"}</button> : null}
             <button className="trip-view-detail" type="button" onClick={event => { event.stopPropagation(); setView({ kind: "detail", bookingId: item.bookingId }); }}>Xem chi tiết<CaretRight size={15} /></button>
           </div>
         </article>)}</div>}
     </article>
-    {ownsItems && view?.kind === "detail" ? <OrderDetailModal bookingId={view.bookingId} onClose={() => setView(null)} onPayment={() => setView({ kind: "payment", bookingId: view.bookingId })} /> : null}
+    {ownsItems && view?.kind === "detail" ? <OrderDetailModal bookingId={view.bookingId} onClose={() => setView(null)} onCancelled={() => { setView(null); void load(); }} onPayment={() => setView({ kind: "payment", bookingId: view.bookingId })} /> : null}
     {ownsItems && view?.kind === "payment" ? <PaymentModal bookingId={view.bookingId} onClose={() => setView(null)} onPaid={onPaid} /> : null}
   </>;
 }
