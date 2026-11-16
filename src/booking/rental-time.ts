@@ -13,16 +13,14 @@ export function isFutureRentalSlot(date: string, time: string, now: number) {
   return Number.isFinite(instant) && instant > now;
 }
 
-/** Hourly bookings must start and finish within the same Vietnam local day. */
-export function isHourlyRentalWithinHours(time: string, hours: number) {
+/** Hourly rentals may start at any half-hour slot and continue overnight. */
+export function isValidHourlyRental(time: string, hours: number) {
   if (!/^\d{2}:\d{2}$/.test(time) || !Number.isInteger(hours) || hours < 4 || hours > 8) return false;
   const [hour, minute] = time.split(":").map(Number);
-  if (minute !== 0 && minute !== 30) return false;
-  const startMinutes = hour * 60 + minute;
-  return startMinutes >= 5 * 60 && startMinutes + hours * 60 <= 22 * 60;
+  return hour >= 0 && hour <= 23 && (minute === 0 || minute === 30);
 }
 
-export const HOURLY_PICKUP_OPTIONS = RENTAL_TIME_OPTIONS.filter(time => isHourlyRentalWithinHours(time, 4));
+export const HOURLY_PICKUP_OPTIONS = RENTAL_TIME_OPTIONS;
 
 export function firstFutureRentalTime(date: string, now: number) {
   return HOURLY_PICKUP_OPTIONS.find(time => isFutureRentalSlot(date, time, now)) ?? null;

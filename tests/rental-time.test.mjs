@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { firstFutureRentalTime, HOURLY_PICKUP_OPTIONS, isFutureRentalSlot, isHourlyRentalWithinHours, RENTAL_TIME_OPTIONS, vietnamDateKey } from "../src/booking/rental-time.ts";
+import { firstFutureRentalTime, HOURLY_PICKUP_OPTIONS, isFutureRentalSlot, isValidHourlyRental, RENTAL_TIME_OPTIONS, vietnamDateKey } from "../src/booking/rental-time.ts";
 
 test("hourly pickup slots must be strictly later than the current instant", () => {
   const now = Date.parse("2026-11-16T03:10:00Z"); // 10:10 in Vietnam
@@ -17,23 +17,25 @@ test("at a slot boundary or the end of the day, the current slot is not offered"
   assert.equal(firstFutureRentalTime("2026-11-16", boundary), "11:00");
   const late = Date.parse("2026-11-16T16:30:00Z"); // 23:30 in Vietnam
   assert.equal(firstFutureRentalTime("2026-11-16", late), null);
-  assert.equal(firstFutureRentalTime("2026-11-17", late), "05:00");
+  assert.equal(firstFutureRentalTime("2026-11-17", late), "00:00");
 });
 
-test("hourly rentals stay between 05:00 and 22:00 including 4–8 hour duration", () => {
-  assert.equal(isHourlyRentalWithinHours("04:30", 4), false);
-  assert.equal(isHourlyRentalWithinHours("05:00", 4), true);
-  assert.equal(isHourlyRentalWithinHours("14:00", 8), true);
-  assert.equal(isHourlyRentalWithinHours("14:30", 8), false);
-  assert.equal(isHourlyRentalWithinHours("18:00", 4), true);
-  assert.equal(isHourlyRentalWithinHours("18:30", 4), false);
-  assert.equal(isHourlyRentalWithinHours("22:00", 4), false);
-  assert.equal(HOURLY_PICKUP_OPTIONS[0], "05:00");
-  assert.equal(HOURLY_PICKUP_OPTIONS.at(-1), "18:00");
+test("hourly rentals can start any time and continue overnight, with a 4–8 hour duration", () => {
+  for (const time of ["00:00", "04:30", "14:30", "18:30", "22:00", "23:30"]) {
+    assert.equal(isValidHourlyRental(time, 4), true);
+    assert.equal(isValidHourlyRental(time, 8), true);
+  }
+  assert.equal(isValidHourlyRental("23:30", 3), false);
+  assert.equal(isValidHourlyRental("23:30", 9), false);
+  assert.equal(isValidHourlyRental("24:00", 4), false);
+  assert.equal(HOURLY_PICKUP_OPTIONS[0], "00:00");
+  assert.equal(HOURLY_PICKUP_OPTIONS.at(-1), "23:30");
 });
 
-test("late afternoon moves the default to the next morning", () => {
-  const afterLastPickup = Date.parse("2026-11-16T11:00:00Z"); // 18:00 Vietnam
+test("night-time bookings retain future slots and roll to midnight only after the last slot", () => {
+  const night = Date.parse("2026-11-16T15:15:00Z"); // 22:15 Vietnam
+  assert.equal(firstFutureRentalTime("2026-11-16", night), "22:30");
+  const afterLastPickup = Date.parse("2026-11-16T16:30:00Z"); // 23:30 Vietnam
   assert.equal(firstFutureRentalTime("2026-11-16", afterLastPickup), null);
-  assert.equal(firstFutureRentalTime("2026-11-17", afterLastPickup), "05:00");
+  assert.equal(firstFutureRentalTime("2026-11-17", afterLastPickup), "00:00");
 });

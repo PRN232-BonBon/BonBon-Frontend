@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowRight, CaretDown, CaretLeft, CaretRight, X } from "@phosphor-icons/react";
 import { checkVehicleAvailability, getOccupiedIntervals, validateRentalWindow, type OccupiedInterval, type RentalType, type RentalWindowResponse } from "../../booking/booking-api";
-import { firstFutureRentalTime, HOURLY_PICKUP_OPTIONS, isFutureRentalSlot, isHourlyRentalWithinHours, RENTAL_TIME_OPTIONS, vietnamDateKey } from "../../booking/rental-time";
+import { firstFutureRentalTime, HOURLY_PICKUP_OPTIONS, isFutureRentalSlot, isValidHourlyRental, RENTAL_TIME_OPTIONS, vietnamDateKey } from "../../booking/rental-time";
 
 export type RentalSelection = RentalWindowResponse;
 
@@ -149,7 +149,7 @@ export function RentalTimeModal({ vehicleId, value, onClose, onConfirm }: Rental
   const initialStartValue = vietnamParts(value.startAt);
   const current = Date.now();
   let initialStart = initialStartValue;
-  if (value.rentalType === "Hourly" && (!isFutureRentalSlot(initialStartValue.date, initialStartValue.time, current) || !isHourlyRentalWithinHours(initialStartValue.time, 4))) {
+  if (value.rentalType === "Hourly" && (!isFutureRentalSlot(initialStartValue.date, initialStartValue.time, current) || !isValidHourlyRental(initialStartValue.time, 4))) {
     let date = vietnamDateKey(current);
     let next = firstFutureRentalTime(date, current);
     if (!next) { date = vietnamDateKey(current + 86_400_000); next = firstFutureRentalTime(date, current); }
@@ -161,7 +161,7 @@ export function RentalTimeModal({ vehicleId, value, onClose, onConfirm }: Rental
   const [endDate, setEndDate] = useState(initialEnd.date);
   const [startTime, setStartTime] = useState(initialStart.time);
   const [endTime, setEndTime] = useState(initialEnd.time);
-  const [durationHours, setDurationHours] = useState(value.rentalType === "Hourly" && isHourlyRentalWithinHours(initialStart.time, value.billableUnits) ? value.billableUnits : 4);
+  const [durationHours, setDurationHours] = useState(value.rentalType === "Hourly" && isValidHourlyRental(initialStart.time, value.billableUnits) ? value.billableUnits : 4);
   const [savedDailyStart, setSavedDailyStart] = useState<{ date: string; time: string } | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [viewMonth, setViewMonth] = useState(() => {
@@ -185,7 +185,7 @@ export function RentalTimeModal({ vehicleId, value, onClose, onConfirm }: Rental
     setNow(current);
     setStartDate(date);
     setError("");
-    if (!isFutureRentalSlot(date, startTime, current) || !isHourlyRentalWithinHours(startTime, 4)) {
+    if (!isFutureRentalSlot(date, startTime, current) || !isValidHourlyRental(startTime, 4)) {
       const next = firstFutureRentalTime(date, current);
       if (next) setStartTime(next);
     }
@@ -280,6 +280,10 @@ export function RentalTimeModal({ vehicleId, value, onClose, onConfirm }: Rental
     if (!startDate || endDate || date < startDate) {
       setStartDate(date);
       setEndDate("");
+      if (!isFutureRentalSlot(date, startTime, Date.now())) {
+        const next = firstFutureRentalTime(date, Date.now());
+        if (next) setStartTime(next);
+      }
     } else if (date === startDate) {
       setEndDate("");
     } else {
@@ -294,13 +298,13 @@ export function RentalTimeModal({ vehicleId, value, onClose, onConfirm }: Rental
   }
 
   async function confirm() {
-    if (mode === "Hourly" && !isFutureRentalSlot(startDate, startTime, Date.now())) {
+    if (!isFutureRentalSlot(startDate, startTime, Date.now())) {
       setNow(Date.now());
       setError("Giờ nhận xe đã qua. Vui lòng chọn giờ khác.");
       return;
     }
-    if (mode === "Hourly" && !isHourlyRentalWithinHours(startTime, durationHours)) {
-      setError("Thuê theo giờ chỉ áp dụng từ 05:00 đến 22:00. Vui lòng chọn lại thời gian.");
+    if (mode === "Hourly" && !isValidHourlyRental(startTime, durationHours)) {
+      setError("Vui lòng chọn giờ nhận xe và thời lượng thuê từ 4 đến 8 giờ.");
       return;
     }
     if (vehicleId && scheduleState !== "ready") { setError("Chưa thể kiểm tra lịch xe. Vui lòng mở lại và thử lại."); return; }
@@ -400,17 +404,18 @@ export function RentalTimeModal({ vehicleId, value, onClose, onConfirm }: Rental
               </div>
 
               <div className="rental-time-row">
-                <label><span>Nhận xe</span><span className="rental-select-wrap"><select value={startTime} onChange={(event) => setStartTime(event.target.value)}>{TIME_OPTIONS.map((time) => <option key={time} disabled={!!vehicleId && occupied.some(interval => Date.parse(toIso(startDate, time)) >= Date.parse(interval.startAt) && Date.parse(toIso(startDate, time)) < Date.parse(interval.endAt))}>{time}</option>)}</select><CaretDown size={18} /></span></label>
+                <label><span>Nhận xe</span><span className="rental-select-wrap"><select value={startTime} onChange={(event) => setStartTime(event.target.value)}>{TIME_OPTIONS.map((time) => <option key={time} disabled={!isFutureRentalSlot(startDate, time, now) || (!!vehicleId && occupied.some(interval => Date.parse(toIso(startDate, time)) >= Date.parse(interval.startAt) && Date.parse(toIso(startDate, time)) < Date.parse(interval.endAt)))}>{time}</option>)}</select><CaretDown size={18} /></span></label>
                 <ArrowRight className="rental-time-arrow" size={20} />
                 <label><span>Trả xe</span><span className="rental-select-wrap"><select value={endTime} onChange={(event) => setEndTime(event.target.value)}>{TIME_OPTIONS.map((time) => <option key={time} disabled={!!vehicleId && !!endDate && overlaps(draft.startAt, toIso(endDate, time))}>{time}</option>)}</select><CaretDown size={18} /></span></label>
               </div>
+              {!isFutureRentalSlot(startDate, startTime, now) ? <p className="rental-error" role="alert">Giờ nhận xe đã qua. Vui lòng chọn giờ khác.</p> : null}
             </>
           ) : (
             <div className="rental-hourly-fields">
               <label><span>Ngày bắt đầu</span><input type="date" min={vietnamDateKey(now)} value={startDate} onChange={(event) => selectHourlyDate(event.target.value)} /></label>
-              <label><span>Giờ nhận xe</span><span className="rental-select-wrap"><select value={startTime} onChange={(event) => { const time = event.target.value; setStartTime(time); if (!isHourlyRentalWithinHours(time, durationHours)) setDurationHours(4); setError(""); }}>{HOURLY_PICKUP_OPTIONS.map((time) => <option key={time} disabled={!isFutureRentalSlot(startDate, time, now) || (!!vehicleId && overlaps(toIso(startDate, time), addHours(toIso(startDate, time), isHourlyRentalWithinHours(time, durationHours) ? durationHours : 4)))}>{time}</option>)}</select><CaretDown size={18} /></span></label>
-              <label className="rental-duration-field"><span>Thời gian thuê</span><span className="rental-select-wrap"><select value={durationHours} onChange={(event) => setDurationHours(Number(event.target.value))}>{[4, 5, 6, 7, 8].map((hours) => <option value={hours} key={hours} disabled={!isHourlyRentalWithinHours(startTime, hours) || (!!vehicleId && overlaps(draft.startAt, addHours(draft.startAt, hours)))}>{hours} giờ - kết thúc {vietnamParts(addHours(draft.startAt, hours)).time}</option>)}</select><CaretDown size={18} /></span></label>
-              <p className="rental-hourly-note">Thuê từ 4 đến 8 giờ, nhận và trả xe trong khung 05:00–22:00.</p>
+              <label><span>Giờ nhận xe</span><span className="rental-select-wrap"><select value={startTime} onChange={(event) => { setStartTime(event.target.value); setError(""); }}>{HOURLY_PICKUP_OPTIONS.map((time) => <option key={time} disabled={!isFutureRentalSlot(startDate, time, now) || (!!vehicleId && overlaps(toIso(startDate, time), addHours(toIso(startDate, time), durationHours)))}>{time}</option>)}</select><CaretDown size={18} /></span></label>
+              <label className="rental-duration-field"><span>Thời gian thuê</span><span className="rental-select-wrap"><select value={durationHours} onChange={(event) => setDurationHours(Number(event.target.value))}>{[4, 5, 6, 7, 8].map((hours) => { const end = vietnamParts(addHours(draft.startAt, hours)); return <option value={hours} key={hours} disabled={!!vehicleId && overlaps(draft.startAt, addHours(draft.startAt, hours))}>{hours} giờ - kết thúc {end.time}{end.date !== startDate ? " (ngày hôm sau)" : ""}</option>; })}</select><CaretDown size={18} /></span></label>
+              <p className="rental-hourly-note">Thuê từ 4 đến 8 giờ, có thể trả xe vào ngày hôm sau.</p>
               {!firstFutureRentalTime(startDate, now) ? <p className="rental-error" role="alert">Không còn giờ nhận xe trong ngày này. Vui lòng chọn ngày tiếp theo.</p> : !isFutureRentalSlot(startDate, startTime, now) ? <p className="rental-error" role="alert">Giờ nhận xe đã qua. Vui lòng chọn giờ khác.</p> : null}
             </div>
           )}
@@ -426,7 +431,7 @@ export function RentalTimeModal({ vehicleId, value, onClose, onConfirm }: Rental
             <strong>{formatRentalSummary(displaySelection)}</strong>
             <span>Thời gian thuê: <b>{displaySelection.billableUnits} {displaySelection.unitLabel}</b></span>
           </div>
-          <button type="button" onClick={() => void confirm()} disabled={isSubmitting || showLimitWarning || !!selectedTimeBusy || (mode === "Hourly" && (!isFutureRentalSlot(startDate, startTime, now) || !isHourlyRentalWithinHours(startTime, durationHours))) || (!!vehicleId && scheduleState !== "ready")}>
+          <button type="button" onClick={() => void confirm()} disabled={isSubmitting || showLimitWarning || !!selectedTimeBusy || !isFutureRentalSlot(startDate, startTime, now) || (mode === "Hourly" && !isValidHourlyRental(startTime, durationHours)) || (!!vehicleId && scheduleState !== "ready")}>
             {isSubmitting ? "Đang kiểm tra…" : "Tiếp tục"}
           </button>
         </footer>
