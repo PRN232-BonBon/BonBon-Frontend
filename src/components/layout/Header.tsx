@@ -61,9 +61,9 @@ export function Header() {
           <a className="brand" href="/#top" aria-label="BonBon - về đầu trang">
             <img src="/assets/brand/bonbon-logo-cropped.webp" alt="BonBon" />
           </a>
-          <a className="header-hotline" href="tel:0937726869" aria-label="Gọi hotline 0937726869">
+          <a className="header-hotline" href="tel:0376343023" aria-label="Gọi hotline 0376343023">
             <PhoneCall size={18} weight="fill" />
-            <span><small>Hotline</small><strong>0937726869</strong></span>
+            <span><small>Hotline</small><strong>0376343023</strong></span>
           </a>
         </div>
 
