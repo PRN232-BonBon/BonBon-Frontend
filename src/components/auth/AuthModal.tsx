@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { Eye, EyeSlash, X } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/AuthContext";
+import { ForgotPasswordForm } from "./ForgotPasswordForm";
 
 export type AuthMode = "login" | "register";
 
@@ -22,6 +23,7 @@ export function AuthModal({ mode, onModeChange, onClose }: AuthModalProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [view, setView] = useState<"auth" | "forgot">("auth");
   const [form, setForm] = useState({
     email: "",
     fullName: "",
@@ -54,6 +56,7 @@ export function AuthModal({ mode, onModeChange, onClose }: AuthModalProps) {
     setError("");
     setShowPassword(false);
     setShowConfirmPassword(false);
+    setView("auth");
     requestAnimationFrame(() => firstFieldRef.current?.focus());
   }, [mode]);
 
@@ -160,9 +163,20 @@ export function AuthModal({ mode, onModeChange, onClose }: AuthModalProps) {
         </button>
 
         <div className="auth-heading">
-          <h2 id={titleId}>{mode === "login" ? "Đăng nhập" : "Đăng ký"}</h2>
+          <h2 id={titleId}>{view === "forgot" ? "Quên mật khẩu" : mode === "login" ? "Đăng nhập" : "Đăng ký"}</h2>
         </div>
 
+        {view === "forgot" ? (
+          <>
+            <ForgotPasswordForm email={form.email} onBackToLogin={() => { setView("auth"); setError(""); }} />
+            <p className="auth-switch">
+              <button type="button" onClick={() => { setView("auth"); setError(""); }} disabled={isSubmitting}>
+                Về đăng nhập
+              </button>
+            </p>
+          </>
+        ) : (
+        <>
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           <label className="auth-field">
             <span>Email</span>
@@ -269,6 +283,13 @@ export function AuthModal({ mode, onModeChange, onClose }: AuthModalProps) {
           <button className="auth-submit" type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Đang xử lý…" : mode === "login" ? "Đăng nhập" : "Đăng ký"}
           </button>
+          {mode === "login" ? (
+            <p className="auth-switch auth-forgot">
+              <button type="button" onClick={() => { setView("forgot"); setError(""); }} disabled={isSubmitting}>
+                Quên mật khẩu?
+              </button>
+            </p>
+          ) : null}
         </form>
 
         <p className="auth-switch">
@@ -284,6 +305,7 @@ export function AuthModal({ mode, onModeChange, onClose }: AuthModalProps) {
             <div className="auth-google" ref={googleButtonRef} aria-label="Đăng nhập bằng Google" />
           </>
         ) : null}
+        </>)}
       </section>
     </div>
   );

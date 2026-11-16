@@ -136,3 +136,11 @@ export function refresh(refreshToken: string) {
 export function logout(session: AuthSession) {
   return post<void>("/auth/logout", { refreshToken: session.refreshToken }, session.accessToken);
 }
+
+export function forgotPassword(email: string) {
+  return post<{ message: string }>("/auth/forgot-password", { email });
+}
+
+export function resetPassword(payload: { email: string; otp: string; newPassword: string }) {
+  return post<void>("/auth/reset-password", payload);
+}
